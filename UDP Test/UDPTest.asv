@@ -8,12 +8,12 @@ receiver = dsp.UDPReceiver('MessageDataType','double','RemoteIPAddress', IPRecei
 
 t = 0;
 answer = 0;
-received=[]
+
 while true
     answer = sin(t);
     sending = answer;
     step(sender, sending);
-    received = [received,step(receiver)];
+    received = receivedstep(receiver)
     plot(received);
     bytessent = length(sending);
     bytesreceived = length(received);
