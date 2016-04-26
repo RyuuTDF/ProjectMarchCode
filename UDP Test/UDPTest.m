@@ -22,3 +22,4 @@ while true
     t = t+1;
     pause(0.5)
 end
+%test
