@@ -1,0 +1,13 @@
+classdef SensorDataContainer
+    %SENSORDATACONTAINER Contains the sensor data and methods to convert
+    %the data to certain formats
+    
+    properties
+        datamatrix = {};
+    end
+    
+    methods
+    end
+    
+end
+
