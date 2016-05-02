@@ -14,7 +14,7 @@ while true
     sending = answer;
     step(sender, sending);
     received = [received,step(receiver)];
-    plot(received);
+    plot(received)
     bytessent = length(sending);
     bytesreceived = length(received);
     isequal(length(bytessent),length(bytesreceived));
