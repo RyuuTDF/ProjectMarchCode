@@ -6,7 +6,21 @@ classdef SensorDataContainer
         datamatrix = {};
     end
     
+    methods(Static)
+        
+    end
+    
     methods
+        function matrix = SensorDataContainer(input)
+            matrix.datamatrix = input;          
+        end
+        
+        function out = returnColumn(obj,idx)
+            out = obj.datamatrix(:,idx);
+        end
+        function out = returnRow(obj,idx)
+            obj.datamatrix(idx,:)
+        end
     end
     
 end
