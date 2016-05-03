@@ -1,0 +1,2 @@
+# /lib/dhcpcd/dhcpcd-hooks/70-ipv4-nat
+iptables-restore < /etc/iptables.bridge.ipv4.nat.conf
