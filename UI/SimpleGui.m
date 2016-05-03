@@ -25,7 +25,7 @@ classdef SimpleGui <handle
                 plot(cell2mat(transpose(databacklog(2:end,1))));
                 axes(gui.graph);
                 plot(cell2mat(transpose(databacklog(2:end,2))));
-                pause(0.02);
+                pause(2);
             end
         end
     end
@@ -38,14 +38,25 @@ classdef SimpleGui <handle
                  gui.sensortype = sensorData.returnColumn(2);
                  gui.importantSensors = importantSensors;
                  
-                rootFig = figure('Position', [100 100 800 800]);
-                gui.graph = axes('Units','pixels','Position',[25,25,300,300]);
-                gui.graph.Units = 'normalized';
-                gui.graph2 = axes('Units','pixels','Position',[375,25,300,300]);
-                gui.graph2.Units = 'normalized';
+                rootFig = figure('Position', [100 100 1600 800], 'MenuBar', 'None');
+                divParams =[
+                    rootFig.Position(1)+(rootFig.Position(3)*0.8)
+                    rootFig.Position(2)+(rootFig.Position(4)*0.5)
+                    rootFig.Position(3)*0.8
+                    rootFig.Position(4)*0.5
+                    rootFig.Position(3)*0.2
+                    rootFig.Position(4)
+                ];
                 
-                gui.impSensors = uitable('Parent', rootFig, 'Position', [0 350 300 250], 'Data',sensorData.datamatrix(importantSensors,:),'RowName',[],'ColumnName',[]);                
-                gui.allSensors = uitable('Parent', rootFig, 'Position', [250 350 300 250], 'Data',sensorData.datamatrix,'RowName',[],'ColumnName',[]);            
+                naxes = 2;
+                
+                gui.graph = axes('Units','pixels', 'Position', [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
+                gui.graph.Units = 'normalized';
+                gui.graph2 = axes('Units','pixels', 'Position', [25+(divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
+                gui.graph2.Units = 'normalized';
+                                
+                gui.impSensors = uitable('Parent', rootFig, 'Position', [0 divParams(4) divParams(3) divParams(4)], 'Data',sensorData.datamatrix(importantSensors,:),'RowName',[],'ColumnName',[]);                
+                gui.allSensors = uitable('Parent', rootFig, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ], 'Data',sensorData.datamatrix,'RowName',[],'ColumnName',[]);            
             end
         end
         function update(gui,data)
