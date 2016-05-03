@@ -9,23 +9,19 @@ classdef SimpleGui <handle
         allSensors;
         graph;
         graph2;
+        databacklog;
     end
     
     methods(Static)
+        %test function which emulates having a continuous stream of data
         function streamTest
             data = SensorDataContainer(SensorDataContainer.convertSignalData(importdata('TestData2.mat'),6));
             gui= SimpleGui(data,[1:13]);
-            databacklog = transpose(data.returnColumn([1,3]))
             while true
                 rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);
                 data.setColumn(3,transpose(rndVals));
                 gui.update(data);
-                databacklog = vertcat(databacklog,transpose(data.returnColumn(3)));
-                axes(gui.graph2);
-                plot(cell2mat(transpose(databacklog(2:end,1))));
-                axes(gui.graph);
-                plot(cell2mat(transpose(databacklog(2:end,2))));
-                pause(2);
+                pause(0.5);
             end
         end
     end
@@ -49,19 +45,41 @@ classdef SimpleGui <handle
                 ];
                 
                 naxes = 2;
+                gui.databacklog = transpose(sensorData.returnColumn([1,3]));
+
                 
                 gui.graph = axes('Units','pixels', 'Position', [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
                 gui.graph.Units = 'normalized';
                 gui.graph2 = axes('Units','pixels', 'Position', [25+(divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
                 gui.graph2.Units = 'normalized';
                                 
-                gui.impSensors = uitable('Parent', rootFig, 'Position', [0 divParams(4) divParams(3) divParams(4)], 'Data',sensorData.datamatrix(importantSensors,:),'RowName',[],'ColumnName',[]);                
-                gui.allSensors = uitable('Parent', rootFig, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ], 'Data',sensorData.datamatrix,'RowName',[],'ColumnName',[]);            
+                gui.impSensors = uitable('Parent', rootFig,... 
+                'Position', [250 divParams(4)+25 divParams(3) divParams(4)],... 
+                'Data',sensorData.datamatrix(importantSensors,:),...
+                'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
+                'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
+                'RowName',[],'ColumnName',[]...
+                );
+                gui.impSensors.Position(3) = gui.impSensors.Extent(3);
+                gui.impSensors.Position(4) = gui.impSensors.Extent(4);
+                gui.allSensors = uitable('Parent', rootFig, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ],...
+                    'Data',sensorData.datamatrix(:,1:3),'RowName',[],'ColumnName',[],...
+                    'ColumnWidth', {100,150,30}...
+                );
+                gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
             end
         end
-        function update(gui,data)
+        %updates the sensor tables in the GUI
+        function update(gui,data)   
             gui.impSensors.Data = data.datamatrix(gui.importantSensors,:);
             gui.allSensors.Data = data.datamatrix;
+            
+            gui.databacklog = vertcat(gui.databacklog,transpose(data.returnColumn(3)));
+            axes(gui.graph2);
+            plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,1))));
+            axes(gui.graph);
+            plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,2))));
+            
         end
         
     end
