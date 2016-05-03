@@ -1,30 +1,3 @@
-<<<<<<< HEAD
-%Initialize Sender
-IPSend = '145.94.206.194';
-sender = dsp.UDPSender('RemoteIPAddress', IPSend);
-
-%Initialize Receiver
-IPReceive = '0.0.0.0';
-receiver = dsp.UDPReceiver('MessageDataType','double','RemoteIPAddress', IPReceive);
-
-t = 0;
-answer = 0;
-received=[]
-while true
-    answer = sin(t);
-    sending = answer;
-    step(sender, sending);
-    received = [received,step(receiver)];
-    plot(received)
-    bytessent = length(sending);
-    bytesreceived = length(received);
-    isequal(length(bytessent),length(bytesreceived));
-
-    t = t+1;
-    pause(0.5)
-end
-%test
-=======
 %Initialize Sender
 IPSend = '127.0.0.1';
 sender = dsp.UDPSender('RemoteIPAddress', IPSend);
@@ -55,4 +28,3 @@ while true
     end
     pause(1)
 end
->>>>>>> refs/remotes/origin/jens

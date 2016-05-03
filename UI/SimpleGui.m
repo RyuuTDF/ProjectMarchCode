@@ -13,8 +13,8 @@ classdef SimpleGui <handle
     
     methods(Static)
         function streamTest
-            data = SensorDataContainer(importdata('TestData.mat'));
-            gui= SimpleGui(data,[1,3]);
+            data = SensorDataContainer(SensorDataContainer.convertSignalData(importdata('TestData2.mat'),6));
+            gui= SimpleGui(data,[1:13]);
             databacklog = transpose(data.returnColumn([1,3]))
             while true
                 rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);

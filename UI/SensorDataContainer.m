@@ -7,7 +7,9 @@ classdef SensorDataContainer <  handle
     end
     
     methods(Static)
-        
+        function data = convertSignalData(input,amtCols)
+            data = transpose(reshape([input{:}],amtCols,[]));
+        end
     end
     
     methods
