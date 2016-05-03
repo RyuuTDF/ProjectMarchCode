@@ -26,6 +26,9 @@ classdef SensorDataContainer <  handle
         function out = returnRow(obj,idx)
             out = obj.datamatrix(idx,:);
         end
+        function out = returnEntry(obj, idx1,idx2)
+            out = obj.datamatrix(idx1,idx2);
+        end
     end
     
 end
