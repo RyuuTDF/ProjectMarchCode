@@ -6,13 +6,23 @@ classdef SimpleGui <handle
         sensorlabel = {};
         sensortype = {};
         importantSensors = [];
+        
+        SIPreFixes = {'G'    'M'    'k'    'h'    'da'  'none'  'd'    'c'    'm'    'µ'    'n'}; 
+        SItrans = {@(x)x*10^9    @(x)x*10^6    @(x)x*10^3    ...
+            @(x)x*10^2    @(x)x*10^1    @(x)x*10^0    @(x)x*10^-1    @(x)x*10^-2    @(x)x*10^-3 ...
+            @(x)x*10^-6    @(x)x*10^-9}
+        
         impSensors;
         allSensors;
+        convTable;
+        
         graph;
         graph2;
+        
         ddg1;
         ddg2;
         root;
+        
         
         updateFlag = true;
         updateRate = 0.02;
@@ -26,7 +36,7 @@ classdef SimpleGui <handle
         function streamTest
             data = SensorDataContainer(SensorDataContainer.convertSignalData(importdata('TestData2.mat'),6));
             gui= SimpleGui(data,[1:13]);
-            updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[50,750,100,25]);
+            updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
 
             function updateC(hObject, eventdata, handles)
                 gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
@@ -69,19 +79,41 @@ classdef SimpleGui <handle
        %creates tables
         function generateTables(gui,divParams)
              gui.impSensors = uitable('Parent', gui.root,... 
-                'Position', [250 divParams(4)+25 divParams(3) divParams(4)],... 
+                'Position', [25 divParams(4)+25 divParams(3) divParams(4)],... 
                 'Data',gui.data.datamatrix(gui.importantSensors,:),...
                 'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
                 'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
                 'RowName',[],'ColumnName',[]...
+              );
+            
+                gui.convTable = uitable('Parent', gui.root,... 
+                    'Data', transpose(gui.SIPreFixes)...
+                    ,'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
+                    'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
+                    'RowName',[],'ColumnName',[]...
                 );
+            
                 gui.impSensors.Position(3) = gui.impSensors.Extent(3);
                 gui.impSensors.Position(4) = gui.impSensors.Extent(4);
+                
+                gui.convTable.Position(1) =gui.impSensors.Position(1) +gui.impSensors.Position(3);
+                gui.convTable.Position(2) = gui.impSensors.Position(2);
+
                 gui.allSensors = uitable('Parent', gui.root, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ],...
                     'Data',gui.data.datamatrix(:,1:3),'RowName',[],'ColumnName',[],...
-                    'ColumnWidth', {100,150,30},'Visible','off'...
-                );
-                gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
+                    'ColumnWidth', {100,150,30}, 'Visible','off'...
+                );    
+            
+                gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;               
+                showAll = uicontrol('Style','checkbox','Callback',@toggleAll,'Position',[divParams(3) divParams(6)-25 25 25]);
+                
+                function toggleAll(hObject,eventData)
+                   if(get(hObject,'Value') == get(hObject,'Max'))
+                       gui.allSensors.Visible = 'on';
+                   else
+                       gui.allSensors.Visible = 'off';
+                   end
+                end
        end
         
        %creates the graphs
