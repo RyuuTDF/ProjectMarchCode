@@ -9,7 +9,13 @@ classdef SimpleGui <handle
         allSensors;
         graph;
         graph2;
-        graphSensors =[3 2];
+        ddg1;
+        ddg2;
+        
+        updateFlag = true;
+        updateRate = 1;
+        
+        graphSensors =[1 2];
         databacklog;
     end
     
@@ -18,11 +24,20 @@ classdef SimpleGui <handle
         function streamTest
             data = SensorDataContainer(SensorDataContainer.convertSignalData(importdata('TestData2.mat'),6));
             gui= SimpleGui(data,[1:13]);
-            while true
-                rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);
-                data.setColumn(3,transpose(rndVals));
-                gui.update(data);
-                pause(0.5);
+            updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[50,750,100,25]);
+            updateFreq = uicontrol('Style','slider','Callback',@updateF,'Position',[50,650,100,25],...
+                'Max',2,'Min',0.1, 'SliderStep',[0.01 0.10],'Value',1);
+            function updateF(hObject, eventdata, handles)
+                gui.updateRate=hObject.Value;
+            end
+            function updateC(hObject, eventdata, handles)
+                gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
+                while gui.updateFlag;
+                    rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);
+                    data.setColumn(3,transpose(rndVals));
+                    gui.update(data);
+                    pause(gui.updateRate);
+                end
             end
         end
     end
@@ -47,10 +62,14 @@ classdef SimpleGui <handle
                     rootFig.Position(4)
                 ];
             
-                popup = uicontrol('Style', 'popup',...
+                gui.ddg1 = uicontrol('Style', 'popup',...
                 'String', gui.sensorlabel,...
-                'Position', [20 340 100 50],...
-                'Callback', @changeGraph);   
+                'Position', [25 370 100 50]...
+                );   
+                gui.ddg2 = uicontrol('Style', 'popup',...
+                'String', gui.sensorlabel,'Value',2,...
+                'Position', [665 370 100 50]...
+                );   
                 naxes = 2;
                 gui.databacklog = transpose(sensorData.returnColumn([1,3]));
 
@@ -82,15 +101,13 @@ classdef SimpleGui <handle
             
 
             end
-            function changeGraph(source, callbackdata)
-                val = source.Value;
-                graph = source.String;               
-                gui.graphSensors(1)=val;
-                drawnow();
-            end
         end
         %updates the sensor tables in the GUI
         function update(gui,data)   
+            gui.graphSensors(1)=gui.ddg1.Value;
+            gui.graphSensors(2)=gui.ddg2.Value;
+
+            
             gui.impSensors.Data = data.datamatrix(gui.importantSensors,:);
             gui.allSensors.Data = data.datamatrix;
             
@@ -102,7 +119,7 @@ classdef SimpleGui <handle
             axes(gui.graph);
             plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,gui.graphSensors(1)))));
             gui.graph.Title.String = data.returnEntry(gui.graphSensors(1),1);
-            
+            drawnow;
         end
         
     end
