@@ -40,5 +40,22 @@ printf "Configuring service for starting on boot...\n"
 systemctl enable hostapd
 systemctl enable dnsmasq
 
+# Next part is based on raspi-config (except thee last two lines)
 
+printf "Setting boot mode to console...\n"
+if command -v systemctl > /dev/null && systemctl | grep -q '\-\.mount'; then
+	SYSTEMD=1
+elif [ -f /etc/init.d/cron ] && [ ! -h /etc/init.d/cron ]; then
+	SYSTEMD=0
+else
+	echo "Unrecognised init system"
+fi
+if [ $SYSTEMD -eq 1 ]; then
+	systemctl set-default multi-user.target
+	ln -fs /etc/systemd/system/autologin@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+else
+	[ -e /etc/init.d/lightdm ] && update-rc.d lightdm disable 2
+	sed /etc/inittab -i -e "s/1:2345:respawn:\/sbin\/getty --noclear 38400 tty1/1:2345:respawn:\/bin\/login -f pi tty1 <\/dev\/tty1 >\/dev\/tty1 2>&1/"
+fi
 read -p $'Installation complete.\nPlease disconnect the Raspberry Pi from the current network. Leaving the Raspberry Pi connected will cause malfunctions on the network.\nAfter disconnecting, press ENTER to reboot and activate the configuration.'
+reboot
