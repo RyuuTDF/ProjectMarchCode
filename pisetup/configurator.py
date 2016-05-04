@@ -24,7 +24,7 @@ def run():
 				with open(destination, 'w') as output:
 					with open(destination + ".bak") as input:
 						for inputLine in input:
-							output.write(replaceWithList(inputLine, replaceList))
+							output.write(replaceWithList(inputLine, replaceList[:]))
 			else:
 				print "ERROR: can't modify non-existing file " + source + "!"
 				
