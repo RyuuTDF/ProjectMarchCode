@@ -11,17 +11,10 @@ if [ $(id -u) -ne 0 ]; then
 fi
 
 # Notify the user about where to run this script
-read -p "Auto installation tool for Raspberry Pi to be used on the \
-Project MARCH exoskeleton as connection bridge to an external \
-monitoring client.\n Do only run this tool on a designated Raspberry Pi! \
-It might break any other system.\n Press CTRL+C to abort, or ENTER to continue." 
+read -p $'Auto installation tool for Raspberry Pi to be used on the Project MARCH exoskeleton as connection bridge to an external monitoring client.\nDo only run this tool on a designated Raspberry Pi! It might break any other system.\nPress CTRL+C to abort, or ENTER to continue.'
 
 # Warning: internet connection required
-read -p "\n Please make sure the Raspberry Pi is connected to the internet. \
-This tool will automatically download and install required software. \
-In addition, make sure to run this tool on a local terminal or in a screen session. \
-A remote session will be interrupted during network reconfiguration and might break \
-the installation. \n Press ENTER to continue"
+read -rp $'\n Please make sure the Raspberry Pi is connected to the internet. This tool will automatically download and install required software. In addition, make sure to run this tool on a local terminal or in a screen session. A remote session will be interrupted during network reconfiguration and might break the installation. \nPress ENTER to continue'
 
 printf "Updating software lists...\n"
 apt-get -qq update
@@ -48,6 +41,4 @@ systemctl enable hostapd
 systemctl enable dnsmasq
 
 
-printf "Installation complete.\nPlease disconnect the Raspberry Pi from the current \
-network. Leaving the Raspberry Pi connected will cause malfunctions on the network.\n
-After disconnecting, press ENTER to reboot and activate the configuration."
+read -rp $'Installation complete.\nPlease disconnect the Raspberry Pi from the current network. Leaving the Raspberry Pi connected will cause malfunctions on the network.\nAfter disconnecting, press ENTER to reboot and activate the configuration.'
