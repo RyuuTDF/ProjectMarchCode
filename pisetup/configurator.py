@@ -7,6 +7,7 @@
 import os.path
 import os
 import shutil
+import sys
 
 
 def run():
@@ -82,4 +83,7 @@ def checkPathFor(filename):
 
 
 if __name__ == "__main__":
-    run()
+	oldDir = os.getcwd()
+	os.chdir(sys.path[0])
+	run()
+	os.chdir(oldDir)
