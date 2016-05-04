@@ -2,17 +2,24 @@
 IPSend = '127.0.0.1';
 sender = dsp.UDPSender('RemoteIPAddress', IPSend);
 
-signaldata = cell(100,1);
+n=0;
 
-while true
+while 1
+    packetstream = uint8([]);
+    
     for i = 1:100
-    signaldata{i, 1} = {sprintf('Signal %d', i), 'Dit is een sensor type', randi(1000), randi(1000), randi(1000), randi(1000)};
+    lab = sprintf('Test %d', i);
+    typ = 'Testsensor';
+    val = randi(1000);
+    mini = randi(1000);
+    maxi = randi(1000);
+    output = data_serialize(lab, typ, val, mini, maxi);
+    packetstream = [packetstream; output];
     end
     
-    serialized_data = hlp_serialize(signaldata);
-    
     %Send the packet
-    step(sender, serialized_data);
-    
-    pause(0.5)
+    step(sender, packetstream);
+    sprintf('Packet %d', n)
+    n = n+1;
+    pause(1)
 end

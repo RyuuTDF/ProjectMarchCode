@@ -1,6 +1,6 @@
-function m = hlp_serialize(v)
+function m = modified_serialize(v)
 % Convert a MATLAB data structure into a compact byte vector.
-% Bytes = hlp_serialize(Data)
+% Bytes = modified_serialize(Data)
 %
 % The original data structure can be recovered from the byte vector via hlp_deserialize.
 %
@@ -33,7 +33,7 @@ function m = hlp_serialize(v)
 %   hlp_deserialize
 % 
 % Examples:
-%   bytes = hlp_serialize(mydata);
+%   bytes = modified_serialize(mydata);
 %   ... e.g. transfer the 'bytes' array over the network ...
 %   mydata = hlp_deserialize(bytes);
 %
@@ -52,22 +52,10 @@ function m = hlp_serialize(v)
         m = serialize_cell(v);
     elseif isstruct(v)
         m = serialize_struct(v);
-    elseif isa(v,'function_handle')
-        m = serialize_handle(v);
     elseif islogical(v)
         m = serialize_logical(v);
     elseif isobject(v)
         m = serialize_object(v);
-    elseif isjava(v)
-        warn_once('hlp_serialize:cannot_serialize_java','Cannot properly serialize Java class %s; using a placeholder instead.',class(v));
-        m = serialize_string(['<<hlp_serialize: ' class(v) ' unsupported>>']);
-    else
-        try
-            m = serialize_object(v);
-        catch
-            warn_once('hlp_serialize:unknown_type','Cannot properly serialize object of unknown type "%s"; using a placeholder instead.',class(v));
-            m = serialize_string(['<<hlp_serialize: ' class(v) ' unsupported>>']);
-        end
     end
 end
 
@@ -149,7 +137,7 @@ end
 
 % Cell array of heterogenous contents
 function m = serialize_cell_heterogenous(v)
-    contents = cellfun(@hlp_serialize,v,'UniformOutput',false);
+    contents = cellfun(@modified_serialize,v,'UniformOutput',false);
     m = [uint8(33); ndims(v); typecast(uint32(size(v)),'uint8').'; vertcat(contents{:})];
 end
 
@@ -188,9 +176,6 @@ function m = serialize_cell(v)
             elseif cellfun('isclass',v,'logical')
                 % bool flags
                 m = [uint8(39); serialize_logical(reshape([v{:}],size(v)))];
-            elseif cellfun('isclass',v,'function_handle')
-                % function handles
-                m = serialize_cell_typed(v,@serialize_handle); 
             else
                 % arbitrary / mixed types
                 m = serialize_cell_heterogenous(v);
@@ -214,7 +199,7 @@ function m = serialize_cell(v)
                 m = [uint8(37); class2tag(class(v{1})); ndims(v); typecast(uint32(size(v)),'uint8').'];
             elseif length(unique(cellfun(@class,v(:),'UniformOutput',false))) == 1
                 % of uniform class with prototype
-                m = [uint8(38); hlp_serialize(class(v{1})); ndims(v); typecast(uint32(size(v)),'uint8').'];
+                m = [uint8(38); modified_serialize(class(v{1})); ndims(v); typecast(uint32(size(v)),'uint8').'];
             else
                 % of arbitrary classes
                 m = serialize_cell_heterogenous(v);
@@ -233,7 +218,7 @@ function m = serialize_object(v)
         conts = saveobj(v);
         if isstruct(conts) || iscell(conts) || isnumeric(conts) || ischar(conts) || islogical(conts) || isa(conts,'function_handle')
             % contents is something that we can readily serialize
-            conts = hlp_serialize(conts);
+            conts = modified_serialize(conts);
         else
             % contents is still an object: turn into a struct now
             conts = serialize_struct(struct(conts));
@@ -244,69 +229,6 @@ function m = serialize_object(v)
     end
     % Tag, Class name and Contents
     m = [uint8(134); serialize_string(class(v)); conts];
-end
-
-% Function handle
-function m = serialize_handle(v)    
-    % get the representation
-    rep = functions(v);
-    rep.type
-    switch rep.type
-        case 'simple'
-            % simple function: Tag & name
-            m = [uint8(151); serialize_string(rep.function)];
-        case 'anonymous'
-            global tracking; %#ok<TLEV>
-            if isfield(tracking,'serialize_anonymous_fully') && tracking.serialize_anonymous_fully
-                % serialize anonymous function with their entire variable environment (for complete
-                % eval and evalin support). Requires a stack of function id's, as function handles 
-                % can reference themselves in their full workspace.
-                persistent handle_stack; %#ok<TLEV>
-                % Tag and Code
-                m = [uint8(152); serialize_string(char(v))];
-                % take care of self-references
-                str = java.lang.String(rep.function);
-                func_id = str.hashCode();
-                if ~any(handle_stack == func_id)
-                    try
-                        % push the function id
-                        handle_stack(end+1) = func_id;
-                        % now serialize workspace
-                        m = [m; serialize_struct(rep.workspace{end})];
-                        % pop the ID again
-                        handle_stack(end) = [];
-                    catch e
-                        % note: Ctrl-C can mess up the handle stack
-                        handle_stack(end) = []; %#ok<NASGU>
-                        rethrow(e);
-                    end
-                else
-                    % serialize the empty workspace
-                    m = [m; serialize_struct(struct())];
-                end
-                if length(m) > 2^18
-                    % If you are getting this warning, it is likely that one of your anonymous functions
-                    % was created in a scope that contained large variables; MATLAB will implicitly keep
-                    % these variables around (referenced by the function) just in case you refer to them.
-                    % To avoid this, you can create the anonymous function instead in a sub-function 
-                    % to which you only pass the variables that you actually need.
-                    warn_once('hlp_serialize:large_handle','The function handle with code %s references variables of more than 256k bytes; this is likely very slow.',rep.function); 
-                end
-            else
-                % anonymous function: Tag, Code, and reduced workspace
-                if ~isempty(rep.workspace)
-                    m = [uint8(152); serialize_string(char(v)); serialize_struct(rep.workspace{1})];
-                else
-                    m = [uint8(152); serialize_string(char(v)); serialize_struct(struct())];
-                end
-            end
-        case {'scopedfunction','nested'}
-            % scoped function: Tag and Parentage
-            m = [uint8(153); serialize_cell(rep.parentage)];
-        otherwise
-            warn_once('hlp_serialize:unknown_handle_type','A function handle with unsupported type "%s" was encountered; using a placeholder instead.',rep.type); 
-            m = serialize_string(['<<hlp_serialize: function handle of type ' rep.type ' unsupported>>']);
-    end
 end
 
 % *container* class to byte
@@ -334,46 +256,6 @@ function b = class2tag(cls)
 			b = uint8(9);
 		case 'uint64'
 			b = uint8(10);
-              
-        % other tags are as follows:
-        % % offset by +16: scalar variants of these...
-        % case 'cell'
-        %   b = uint8(33);
-        % case 'cellscalars'
-        %   b = uint8(34);
-        % case 'cellscalarsmixed'
-        %   b = uint8(35);
-        % case 'cellstrings'
-        %   b = uint8(36);
-        % case 'cellempty'
-        %   b = uint8(37);
-        % case 'cellemptyprot'
-        %   b = uint8(38);
-        % case 'cellbools'
-        %   b = uint8(39);
-        % case 'struct'
-        %   b = uint8(128);
-        % case 'sparse'
-        %   b = uint8(130);
-        % case 'complex'
-        %   b = uint8(131);
-        % case 'char'
-        %   b = uint8(132);
-        % case 'logical'
-        %	b = uint8(133);
-        % case 'object'
-        %   b = uint8(134);
-        % case 'function_handle'
-        % 	b = uint8(150);
-        % case 'function_simple'
-        % 	b = uint8(151);
-        % case 'function_anon'
-        % 	b = uint8(152);
-        % case 'function_scoped'
-        % 	b = uint8(153);
-        % case 'emptystring'
-        %   b = uint8(200);
-
 		otherwise
 			error('Unknown class');
     end
