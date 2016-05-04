@@ -1,14 +1,26 @@
+
 %Initialize Sender
-IPSend = '131.180.60.212';
+IPSend = '127.0.0.1';
 sender = dsp.UDPSender('RemoteIPAddress', IPSend);
 
-t = 0;
-answer = 0;
-while true
-    answer = sin(t);
-    sending = double(t)
-    step(sender, sending);
+n=0;
 
-    t = t+1;
-    pause(0.5)
+while 1
+    packetstream = uint8([]);
+    
+    for i = 1:100
+    lab = sprintf('Test %d', i);
+    typ = 'Testsensor';
+    val = randi(1000);
+    mini = randi(1000);
+    maxi = randi(1000);
+    output = data_serialize(lab, typ, val, mini, maxi);
+    packetstream = [packetstream; output];
+    end
+    
+    %Send the packet
+    step(sender, packetstream);
+    sprintf('Packet %d', n)
+    n = n+1;
+    pause(1)
 end
