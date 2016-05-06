@@ -6,13 +6,15 @@ classdef SimpleGui <handle
         sensorlabel = {};
         sensortype = {};
         importantSensors = [];
+        sensorTranforms;
         
         SIPreFixes = {'G'    'M'    'k'    'h'    'da'  'none'  'd'    'c'    'm'    'µ'    'n'}; 
         SItrans = {@(x)x*10^9    @(x)x*10^6    @(x)x*10^3    ...
             @(x)x*10^2    @(x)x*10^1    @(x)x*10^0    @(x)x*10^-1    @(x)x*10^-2    @(x)x*10^-3 ...
-            @(x)x*10^-6    @(x)x*10^-9}
+            @(x)x*10^-6    @(x)x*10^-9};
         
-        impSensors;
+        impSensorsLabel;
+        impSensorsData;
         allSensors;
         convTable;
         
@@ -40,13 +42,33 @@ classdef SimpleGui <handle
 
             function updateC(hObject, eventdata, handles)
                 gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
+                allCnt =0;
                 while gui.updateFlag;
+                    allCnt = allCnt+1;
                     rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);
                     data.setColumn(3,transpose(rndVals));
-                    gui.update(data);
+                    gui.update(data, mod(allCnt,50) ==0);
                     pause(gui.updateRate);
                 end
             end
+        end
+        
+        %generates a uitable with 'data' with the same properties as the
+        %parenttable and has the rightbottom corner of the parenttable as
+        %leftbottom corner
+        function newTable = concatUItab(baseTable,data)
+           newTable = uitable();
+           newTable.Data = data;
+           
+           newTable.Position(1) = baseTable.Position(1)+baseTable.Extent(3);
+           newTable.Position(2) = baseTable.Position(2);
+           newTable.Position(3) = newTable.Extent(3);
+           newTable.Position(4) = baseTable.Extent(4);
+           
+           newTable.BackgroundColor = baseTable.BackgroundColor;
+           newTable.FontSize = baseTable.FontSize;
+           newTable.ColumnName =  [];
+           newTable.RowName = baseTable.RowName;           
         end
     end
     
@@ -59,7 +81,7 @@ classdef SimpleGui <handle
                  gui.sensortype = sensorData.returnColumn(2);
                  gui.importantSensors = importantSensors;
                  
-                gui.root = figure('Position', [100 100 1600 800], 'MenuBar', 'None');
+                gui.root = figure('Position', [100 200 1600 800], 'MenuBar', 'None');
                 divParams =[
                     gui.root.Position(1)+(gui.root.Position(3)*0.8)
                     gui.root.Position(2)+(gui.root.Position(4)*0.5)
@@ -68,6 +90,8 @@ classdef SimpleGui <handle
                     gui.root.Position(3)*0.2
                     gui.root.Position(4)
                 ];
+                gui.sensorTranforms = cell(size(gui.data.datamatrix,1),1);
+                gui.sensorTranforms(:)  = {@(x)x};
              
                 naxes = 2;
                 gui.databacklog = transpose(sensorData.returnColumn([1,3]));                
@@ -78,35 +102,40 @@ classdef SimpleGui <handle
         
        %creates tables
         function generateTables(gui,divParams)
-             gui.impSensors = uitable('Parent', gui.root,... 
+             gui.impSensorsLabel = uitable('Parent', gui.root,... 
                 'Position', [25 divParams(4)+25 divParams(3) divParams(4)],... 
-                'Data',gui.data.datamatrix(gui.importantSensors,:),...
+                'Data',gui.data.datamatrix(gui.importantSensors,1:2),...
                 'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
                 'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
                 'RowName',[],'ColumnName',[]...
               );
+              gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,gui.data.datamatrix(gui.importantSensors,3));
             
-                gui.convTable = uitable('Parent', gui.root,... 
-                    'Data', transpose(gui.SIPreFixes)...
-                    ,'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
-                    'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
-                    'RowName',[],'ColumnName',[]...
-                );
-            
-                gui.impSensors.Position(3) = gui.impSensors.Extent(3);
-                gui.impSensors.Position(4) = gui.impSensors.Extent(4);
+                gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
+                gui.impSensorsLabel.Position(4) = gui.impSensorsLabel.Extent(4);
                 
-                gui.convTable.Position(1) =gui.impSensors.Position(1) +gui.impSensors.Position(3);
-                gui.convTable.Position(2) = gui.impSensors.Position(2);
-
+                SiTable = cell(size(gui.importantSensors,2),1);
+                SiTable(:)  = {'none'};
+                gui.convTable = gui.concatUItab(gui.impSensorsData, SiTable);
+                gui.convTable.Visible = 'on';
+                gui.convTable.ColumnFormat = {gui.SIPreFixes};
+                gui.convTable.ColumnEditable = [true];
+                gui.convTable.CellEditCallback = @cellEditCallback;
                 gui.allSensors = uitable('Parent', gui.root, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ],...
                     'Data',gui.data.datamatrix(:,1:3),'RowName',[],'ColumnName',[],...
                     'ColumnWidth', {100,150,30}, 'Visible','off'...
                 );    
-            
                 gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;               
                 showAll = uicontrol('Style','checkbox','Callback',@toggleAll,'Position',[divParams(3) divParams(6)-25 25 25]);
                 
+                function cellEditCallback(hTable, editEvent)
+                    oldPreFix = editEvent.PreviousData;
+                    newPreFix= editEvent.NewData;
+                    idx = find(strcmp(newPreFix,gui.SIPreFixes));
+                    fn = gui.SItrans{idx}
+                    fn(3)
+                end
+
                 function toggleAll(hObject,eventData)
                    if(get(hObject,'Value') == get(hObject,'Max'))
                        gui.allSensors.Visible = 'on';
@@ -135,13 +164,15 @@ classdef SimpleGui <handle
         end        
         
         %updates the sensor tables in the GUI
-        function update(gui,data)   
+        function update(gui,data, updateAll)   
             gui.graphSensors(1)=gui.ddg1.Value;
             gui.graphSensors(2)=gui.ddg2.Value;
 
             
-            gui.impSensors.Data = data.datamatrix(gui.importantSensors,:);
-            gui.allSensors.Data = data.datamatrix;
+            gui.impSensorsData.Data = data.datamatrix(gui.importantSensors,3);
+            if(updateAll)
+                gui.allSensors.Data = data.datamatrix(:,1:3);
+            end
             
             gui.databacklog = vertcat(gui.databacklog,transpose(data.returnColumn(3)));
             axes(gui.graph2);
