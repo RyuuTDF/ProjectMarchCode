@@ -2,7 +2,7 @@
 IPReceive = '0.0.0.0';
 receiver = dsp.UDPReceiver('RemoteIPAddress', IPReceive,'MaximumMessageLength',65507);
 bytesReceived = 0;
-i = 0;
+i = 1;
 
 while true
     %Receive the packet
@@ -11,9 +11,12 @@ while true
     if ~isempty(received_data)
       bytesReceived = length(received_data);
       deserialized_data = data_deserialize(received_data);
-      fprintf('Bytes received: %d\n', bytesReceived);
+      fprintf('Packet: %d\n', i);
+      %fprintf('Bytes received: %d\n', bytesReceived);
       %'I have received stuff'
+      i = i+1;
     end
     pause(0.001)
    
+
 end
