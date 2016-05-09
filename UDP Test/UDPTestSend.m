@@ -1,4 +1,3 @@
-
 %Initialize Sender
 IPSend = '127.0.0.1';
 sender = dsp.UDPSender('RemoteIPAddress', IPSend);
