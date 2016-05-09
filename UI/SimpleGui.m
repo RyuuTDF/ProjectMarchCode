@@ -90,8 +90,7 @@ classdef SimpleGui <handle
                     gui.root.Position(3)*0.2
                     gui.root.Position(4)
                 ];
-                gui.sensorTranforms = cell(size(gui.data.datamatrix,1),1);
-                gui.sensorTranforms(:)  = {@(x)x};
+                gui.sensorTranforms = {};
              
                 naxes = 2;
                 gui.databacklog = transpose(sensorData.returnColumn([1,3]));                
@@ -110,6 +109,9 @@ classdef SimpleGui <handle
                 'RowName',[],'ColumnName',[]...
               );
               gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,gui.data.datamatrix(gui.importantSensors,3));
+              gui.impSensorsData.ColumnFormat = {'shortG'};
+              gui.impSensorsData.ColumnWidth = {150};
+              gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);
             
                 gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
                 gui.impSensorsLabel.Position(4) = gui.impSensorsLabel.Extent(4);
@@ -132,8 +134,8 @@ classdef SimpleGui <handle
                     oldPreFix = editEvent.PreviousData;
                     newPreFix= editEvent.NewData;
                     idx = find(strcmp(newPreFix,gui.SIPreFixes));
-                    fn = gui.SItrans{idx}
-                    fn(3)
+                    fn = gui.SItrans{idx};
+                    gui.sensorTranforms = [gui.sensorTranforms {{editEvent.Indices(1) fn}}];
                 end
 
                 function toggleAll(hObject,eventData)
@@ -146,7 +148,7 @@ classdef SimpleGui <handle
        end
         
        %creates the graphs
-       function generateGraphs(gui, naxes,divParams)
+           function generateGraphs(gui, naxes,divParams)
             gui.ddg1 = uicontrol('Style', 'popup',...
                 'String', gui.sensorlabel,...
                 'Position', [25 370 100 50]...
@@ -161,15 +163,26 @@ classdef SimpleGui <handle
             gui.graph2 = axes('Units','pixels', 'Position', [25+(divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
             gui.graph2.Units = 'normalized';
             gui.graph2.Title.String = gui.data.returnEntry(gui.graphSensors(2),1);
-        end        
+       end        
         
+       %converts the data according to the settings in the data table
+       function convData = convertData(gui, data)
+           convData = data;
+           cellfun(@convDataLine,gui.sensorTranforms);
+           
+           function convDataLine(x)
+               convData{x{1}} = x{2}(data{x{1}});
+           end
+           convData
+       end
+       
         %updates the sensor tables in the GUI
         function update(gui,data, updateAll)   
             gui.graphSensors(1)=gui.ddg1.Value;
             gui.graphSensors(2)=gui.ddg2.Value;
 
             
-            gui.impSensorsData.Data = data.datamatrix(gui.importantSensors,3);
+            gui.impSensorsData.Data = gui.convertData(data.datamatrix(gui.importantSensors,3));
             if(updateAll)
                 gui.allSensors.Data = data.datamatrix(:,1:3);
             end
@@ -183,7 +196,7 @@ classdef SimpleGui <handle
             plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,gui.graphSensors(1)))));
             gui.graph.Title.String = data.returnEntry(gui.graphSensors(1),1);
             drawnow;
-        end        
+        end       
     end
 end
 
