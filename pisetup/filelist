@@ -7,3 +7,5 @@ replace	iptables.bridge.ipv4.conf	/etc/iptables.bridge.ipv4.conf
 modify	sysctl.conf	/etc/sysctl.conf
 modify	hostapd	/etc/default/hostapd
 modify	interfaces	/etc/network/interfaces
+modify	dnsmasq.service	/lib/systemd/system/dnsmasq.service
+replace	forwarder.py	/opt/forwarder/forwarder.py

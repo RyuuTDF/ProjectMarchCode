@@ -37,6 +37,7 @@ printf "Executing configuration script...\n"
 python projectmarchcode/pisetup/configurator.py
 
 printf "Configuring service for starting on boot...\n"
+chmod +x /opt/forwarder/forwarder.py
 systemctl enable hostapd
 systemctl enable dnsmasq
 
