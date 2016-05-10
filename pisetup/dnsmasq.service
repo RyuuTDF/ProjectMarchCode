@@ -1,0 +1,4 @@
+# /lib/systemd/system/dnsmasq.service
+# Let dnsmasq wait for hostapd. Hostapd can't bind to the interface if dnsmasq is already running
+[Service]
+After=hostapd.service\n\n[Service]

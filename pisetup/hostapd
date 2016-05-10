@@ -1,0 +1,4 @@
+# Modifications for /etc/default/hostapd
+# Replace mode will ignore this first two comment lines
+#DAEMON_CONF=""
+DAEMON_CONF="/etc/hostapd/hostapd.conf"

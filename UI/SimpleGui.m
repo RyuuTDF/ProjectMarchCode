@@ -2,6 +2,7 @@ classdef SimpleGui <handle
     %SIMPLEGUI Shows the sensor data and labels in a table
     
     properties
+        env = Env();
         data = {};
         sensorlabel = {};
         sensortype = {};
@@ -40,9 +41,11 @@ classdef SimpleGui <handle
     methods(Static)
         %test function which emulates having a continuous stream of data
         function streamTest
-            %generates data
-            data = SensorDataContainer(SensorDataContainer.convertSignalData(importdata('TestData2.mat'),6));
-            gui= SimpleGui(data,[1:13]);
+
+            %Sets up the environment
+            env = LocalEnv('TestData2.mat');
+
+            gui= SimpleGui(env.currentdata,[1:13]);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
             
             %callback function for the update checkbox; only updates data when
@@ -52,9 +55,8 @@ classdef SimpleGui <handle
                 allCnt =0;
                 while gui.updateFlag;
                     allCnt = allCnt+1;
-                    rndVals = cellfun(@(x) x*(rand(1)+0.5),data.returnColumn(3),'un',0);
-                    data.setColumn(3,transpose(rndVals));
-                    gui.update(data, mod(allCnt,50) ==0);
+                    updateData(env);
+                    gui.update(env.currentdata, mod(allCnt,50) ==0);
                     pause(gui.updateRate);
                 end
             end
@@ -188,6 +190,7 @@ classdef SimpleGui <handle
                     case 2
                 sensProps.siOrgPrefix = event.NewData;
                 sensProps.siCurrPrefix = event.NewData;                        
+
                     case 3
                  sensProps.siUnit = event.NewData;                               
                     otherwise
@@ -264,8 +267,7 @@ classdef SimpleGui <handle
             plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,gui.graphSensors(1)))));
             gui.graph.Title.String = data.returnEntry(gui.graphSensors(1),1);
             drawnow;
-        end
-        
+        end        
         %saves the sensor properties from file
         function saveProperties(gui)
             sensProps = gui.sensorproperties;
