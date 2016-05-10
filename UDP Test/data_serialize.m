@@ -6,13 +6,6 @@ value_ser = sensor_serialize(value);
 min_ser = sensor_serialize(min);
 max_ser = sensor_serialize(max);
 
-
-V = length(label_ser);
-W = length(type_ser);
-X = length(value_ser);
-Y = length(min_ser);
-Z = length(max_ser);
-
 output = [
     label_ser;
     type_ser;
