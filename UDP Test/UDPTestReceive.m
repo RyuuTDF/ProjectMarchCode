@@ -1,5 +1,5 @@
 %Uncomment below line to test using local data.
-%Localtest
+%LocalTest
 %Uncomment below line to test using the network.
 NetworkTest
 
