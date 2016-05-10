@@ -41,6 +41,7 @@ classdef SimpleGui <handle
     methods(Static)
         %test function which emulates having a continuous stream of data
         function streamTest
+
             %Sets up the environment
             env = LocalEnv('TestData2.mat');
 
@@ -92,6 +93,7 @@ classdef SimpleGui <handle
                 gui.sensortype = sensorData.returnColumn(2);
                 gui.importantSensors = importantSensors;                
                 gui.sensorproperties = cell(size(gui.data.datamatrix,1),1);
+                gui.loadProperties();
                 
                 %calls the figure object and defines some margins
                 gui.root = figure('Position', [100 200 1600 800], 'MenuBar', 'None');
@@ -186,12 +188,15 @@ classdef SimpleGui <handle
                     case 1
                 sensProps.label = event.NewData;        
                     case 2
-                sensProps.siOrgPrefix = event.NewData;        
+                sensProps.siOrgPrefix = event.NewData;
+                sensProps.siCurrPrefix = event.NewData;                        
+
                     case 3
                  sensProps.siUnit = event.NewData;                               
                     otherwise
                 end
-                gui.sensorproperties(gui.selectedSensor) = {sensProps};               
+                gui.sensorproperties(gui.selectedSensor) = {sensProps}; 
+                gui.saveProperties();
             end
             
             %callback function for selecting another SI-prefix to correctly
@@ -262,6 +267,26 @@ classdef SimpleGui <handle
             plot(cell2mat(transpose(gui.databacklog(max(2,end-20):end,gui.graphSensors(1)))));
             gui.graph.Title.String = data.returnEntry(gui.graphSensors(1),1);
             drawnow;
+        end        
+        %saves the sensor properties from file
+        function saveProperties(gui)
+            sensProps = gui.sensorproperties;
+            save('Properties.mat', 'sensProps')
+        end        
+        %loads the sensor properties from file
+        function loadProperties(gui)
+            load('Properties.mat');
+            gui.sensorproperties = sensProps;
+            gui.syncProperties();
+        end
+        
+        %synchronises the Property List with the tables
+        function syncProperties(gui)
+            idxs =  transpose(num2cell([1:size(gui.sensorproperties,1)]));
+            cellfun(@syncsensor, gui.sensorproperties,idxs);
+            function syncsensor(sensorC,idx)
+                
+            end
         end
     end
 end
