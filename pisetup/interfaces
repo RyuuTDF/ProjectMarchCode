@@ -1,0 +1,4 @@
+# /etc/network/interfaces modifications for disabling wpa supplicant
+# Replace mode will ignore this first two comment lines
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+#wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf

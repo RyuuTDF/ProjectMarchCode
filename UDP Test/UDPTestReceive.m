@@ -1,7 +1,7 @@
-%Uncomment below line to test using local data.
-%LocalTest
-%Uncomment below line to test using the network.
-NetworkTest
+%Initialize Receiveroutput
+IPReceive = '0.0.0.0';
+receiver = dsp.UDPReceiver('RemoteIPAddress', IPReceive,'MaximumMessageLength',65507);
+bytesReceived = 0;
 
 %Testing Purposes
 i = 1;
@@ -22,3 +22,4 @@ while true
    
 
 end
+  
