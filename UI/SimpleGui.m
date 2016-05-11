@@ -7,6 +7,7 @@ classdef SimpleGui <handle
         sensorlabel = {};
         sensortype = {};
         importantSensors = [];
+        tablesize = 9;
         sensorTranforms;
         
         sensorproperties;
@@ -43,7 +44,8 @@ classdef SimpleGui <handle
         function streamTest
 
             %Sets up the environment
-            env = LocalEnv('TestData2.mat');
+            %env = LocalEnv('TestData2.mat');
+            env = NetworkEnv();
 
             gui= SimpleGui(env.currentdata,[1:13]);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
@@ -55,7 +57,7 @@ classdef SimpleGui <handle
                 allCnt =0;
                 while gui.updateFlag;
                     allCnt = allCnt+1;
-                    updateData(env);
+                    env = updateData(env);
                     gui.update(env.currentdata, mod(allCnt,50) ==0);
                     pause(gui.updateRate);
                 end
