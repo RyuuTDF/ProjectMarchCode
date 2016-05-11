@@ -10,3 +10,4 @@ modify	interfaces	/etc/network/interfaces
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
 replace	forwarder.service	/etc/systemd/system/forwarder.service
 replace	forwarder.py	/opt/forwarder/forwarder.py
+replace	statuscli.py	/home/pi/statuscli.py

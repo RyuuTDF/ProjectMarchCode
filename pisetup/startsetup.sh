@@ -41,6 +41,7 @@ printf "Configuring service for starting on boot...\n"
 chmod +x /opt/forwarder/forwarder.py
 systemctl enable hostapd
 systemctl enable dnsmasq
+systemctl enable forwarder
 
 # Next part is based on raspi-config (except thee last two lines)
 
