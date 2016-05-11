@@ -18,11 +18,6 @@ classdef SensorProperties
                 sensor.transformation = @(x)x;
             end
         end
-        function sensor = SetBaseSI(unit, prefix)
-                sensor.siUnit = unit;
-                sensor.siOrgPrefix = prefix;
-                sensor.siCurrPrefix = prefix;
-        end
     end
 end
 

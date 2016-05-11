@@ -45,8 +45,8 @@ classdef SimpleGui <handle
         function streamTest
 
             %Sets up the environment
-            %env = LocalEnv('TestData2.mat');
-            env = NetworkEnv();
+            env = LocalEnv('TestData2.mat');
+            %env = NetworkEnv();
 
             gui= SimpleGui(env.currentdata,[1:13]);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
@@ -196,7 +196,6 @@ classdef SimpleGui <handle
                 sensProps.siOrgPrefix = event.NewData;
                 sensProps.siCurrPrefix = event.NewData;
                 sensProps.siOrgPrefix
-                gui.selectedSensor
                 gui.syncProperties(gui.selectedSensor);
                     case 3
                  sensProps.siUnit = event.NewData;                               
@@ -210,6 +209,7 @@ classdef SimpleGui <handle
             %transform the data
             function cellEditCallback(hTable, editEvent)
                 %oldPreFix = editEvent.PreviousData;
+                editEvent
                 basePrefix = gui.sensorproperties{editEvent.Indices(1)}.siOrgPrefix;
                 newPreFix= editEvent.NewData;
                 
@@ -219,7 +219,7 @@ classdef SimpleGui <handle
                 basefn = gui.SItrans{baseidx};
                 newfn = gui.SItrans{newidx};
                 
-                convfn = @(x)x*( newfn(1)/basefn(1))
+                convfn = @(x)x*( newfn(1)/basefn(1));
                 
                 gui.sensorTranforms = [gui.sensorTranforms {{editEvent.Indices(1) convfn}}];
             end
@@ -311,9 +311,14 @@ classdef SimpleGui <handle
                 gui.convTable.Data = tmpCondata;
             end
             function syncsensor(sensorC,idx)
-                if( (isempty(sensorC) == 0) & ~strcmp(tmpCondata{idx}, sensorC.siOrgPrefix) & idx <= size(gui.importantSensors,2))
-                    change = true;
-                    tmpCondata{idx} = sensorC.siOrgPrefix;
+                if ( ~(isempty(sensorC)) & (isempty(sensorC.siOrgPrefix)) )
+                    sensorC.siOrgPrefix = 'none';
+                end
+                if(idx <= size(gui.importantSensors,2))
+                    if( (isempty(sensorC) == 0) & ~strcmp(tmpCondata{idx}, sensorC.siOrgPrefix) )
+                        change = true;
+                        tmpCondata{idx} = sensorC.siOrgPrefix;
+                    end
                 end
             end
         end
