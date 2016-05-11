@@ -5,8 +5,8 @@ classdef SensorProperties
         label = '';
         type = '';
         siUnit = '';
-        siOrgPrefix = '';
-        siCurrPrefix = '';
+        siOrgPrefix = 'none';
+        siCurrPrefix = 'none';
         transformation;
     end
     

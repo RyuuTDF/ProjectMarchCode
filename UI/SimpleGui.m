@@ -2,6 +2,7 @@ classdef SimpleGui <handle
     %SIMPLEGUI Shows the sensor data and labels in a table
     
     properties
+        config;
         env = Env();
         data = {};
         sensorlabel = {};
@@ -95,7 +96,6 @@ classdef SimpleGui <handle
                 gui.sensortype = sensorData.returnColumn(2);
                 gui.importantSensors = importantSensors;                
                 gui.sensorproperties = cell(size(gui.data.datamatrix,1),1);
-                gui.loadProperties();
                 
                 %calls the figure object and defines some margins
                 gui.root = figure('Position', [100 200 1600 800], 'MenuBar', 'None');
@@ -118,6 +118,7 @@ classdef SimpleGui <handle
                 %generates other graphic items
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
+                gui.loadProperties();
             end
         end
         
@@ -169,15 +170,17 @@ classdef SimpleGui <handle
             %callback function which show the properties of a sensor when
             %selected
             function showProperties(table, event)
-                sensIdx = event.Indices(1);
-                sensProps = gui.sensorproperties(sensIdx);
-                sensProps = sensProps{1};
-                if (isempty(sensProps) == 1)
-                    sensProps = SensorProperties(gui.sensorlabel{sensIdx},  gui.sensortype{sensIdx});
-                    gui.sensorproperties(sensIdx) = {sensProps};
+                if (size(event.Indices,1) > 0)
+                    sensIdx = event.Indices(1);
+                    sensProps = gui.sensorproperties(sensIdx);
+                    sensProps = sensProps{1};
+                    if (isempty(sensProps) == 1)
+                        sensProps = SensorProperties(gui.sensorlabel{sensIdx},  gui.sensortype{sensIdx});
+                        gui.sensorproperties(sensIdx) = {sensProps};
+                    end
+                    gui.propTable.Data = {sensProps.label, sensProps.siOrgPrefix, sensProps.siUnit};
+                    gui.selectedSensor = sensIdx;
                 end
-                gui.propTable.Data = {sensProps.label, sensProps.siOrgPrefix, sensProps.siUnit};
-                gui.selectedSensor = sensIdx;
             end
             
             %callback fundtion which saves the edited properties to the
@@ -191,8 +194,10 @@ classdef SimpleGui <handle
                 sensProps.label = event.NewData;        
                     case 2
                 sensProps.siOrgPrefix = event.NewData;
-                sensProps.siCurrPrefix = event.NewData;                        
-
+                sensProps.siCurrPrefix = event.NewData;
+                sensProps.siOrgPrefix
+                gui.selectedSensor
+                gui.syncProperties(gui.selectedSensor);
                     case 3
                  sensProps.siUnit = event.NewData;                               
                     otherwise
@@ -204,11 +209,19 @@ classdef SimpleGui <handle
             %callback function for selecting another SI-prefix to correctly
             %transform the data
             function cellEditCallback(hTable, editEvent)
-                oldPreFix = editEvent.PreviousData;
+                %oldPreFix = editEvent.PreviousData;
+                basePrefix = gui.sensorproperties{editEvent.Indices(1)}.siOrgPrefix;
                 newPreFix= editEvent.NewData;
-                idx = find(strcmp(newPreFix,gui.SIPreFixes));
-                fn = gui.SItrans{idx};
-                gui.sensorTranforms = [gui.sensorTranforms {{editEvent.Indices(1) fn}}];
+                
+                baseidx = find(strcmp(basePrefix,gui.SIPreFixes));                
+                newidx = find(strcmp(newPreFix,gui.SIPreFixes));
+                
+                basefn = gui.SItrans{baseidx};
+                newfn = gui.SItrans{newidx};
+                
+                convfn = @(x)x*( newfn(1)/basefn(1))
+                
+                gui.sensorTranforms = [gui.sensorTranforms {{editEvent.Indices(1) convfn}}];
             end
             
             %function for toggeling the visibility of the All Sensors table
@@ -283,11 +296,25 @@ classdef SimpleGui <handle
         end
         
         %synchronises the Property List with the tables
-        function syncProperties(gui)
+        function syncProperties(gui, sensorIdx)
             idxs =  transpose(num2cell([1:size(gui.sensorproperties,1)]));
-            cellfun(@syncsensor, gui.sensorproperties,idxs);
+            tmpCondata = gui.convTable.Data;
+            change = false;
+            if(nargin ==1)
+                cellfun(@syncsensor, gui.sensorproperties,idxs);
+                if(change)
+                   gui.convTable.Data = tmpCondata;
+                end
+            end
+            if(nargin ==2)
+                syncsensor(gui.sensorproperties{sensorIdx}, sensorIdx);
+                gui.convTable.Data = tmpCondata;
+            end
             function syncsensor(sensorC,idx)
-                
+                if( (isempty(sensorC) == 0) & ~strcmp(tmpCondata{idx}, sensorC.siOrgPrefix) & idx <= size(gui.importantSensors,2))
+                    change = true;
+                    tmpCondata{idx} = sensorC.siOrgPrefix;
+                end
             end
         end
     end
