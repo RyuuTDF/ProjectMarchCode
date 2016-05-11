@@ -23,7 +23,8 @@ printf "Upgrading installed software... (this may take quite some time)\n"
 apt-get -qq -y upgrade
 
 printf "Installing required software...\n"
-apt-get -qq -y install git python dnsmasq hostapd
+apt-get -qq -y install git python dnsmasq hostapd python-pip
+pip install flask -q
 
 printf "Downloading configuration files...\n"
 git clone https://github.com/ryuutdf/projectmarchcode.git
