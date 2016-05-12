@@ -34,7 +34,7 @@ classdef SimpleGui <handle
         
         
         updateFlag = true;
-        updateRate = 0.02;
+        updateRate;
         
         graphSensors =[1 2];
         databacklog;
@@ -42,24 +42,29 @@ classdef SimpleGui <handle
     
     methods(Static)
         %test function which emulates having a continuous stream of data
-        function streamTest
+        function gui = streamTest
 
+            config = importdata('GuiConfig.mat');
             %Sets up the environment
-            env = LocalEnv('TestData2.mat');
-            %env = NetworkEnv();
+            if(strcmp(config.env,'local'))
+                env = LocalEnv(config.src);
+            else
+               env = NetworkEnv(); 
+            end
 
-            gui= SimpleGui(env.currentdata,[1:13]);
+            gui= SimpleGui(env.currentdata,config);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
-            
+            gui.updateRate = config.updateFreq;
             %callback function for the update checkbox; only updates data when
             %the checkbox is marked
             function updateC(hObject, eventdata, handles)
                 gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
                 allCnt =0;
+                allUpdate= config.allUpdateRate/config.updateFreq;
                 while gui.updateFlag;
                     allCnt = allCnt+1;
                     env = updateData(env);
-                    gui.update(env.currentdata, mod(allCnt,50) ==0);
+                    gui.update(env.currentdata, mod(allCnt,allUpdate) ==0);
                     pause(gui.updateRate);
                 end
             end
@@ -86,7 +91,8 @@ classdef SimpleGui <handle
     
     methods
         %constructor function for the gui
-        function gui = SimpleGui(sensorData, importantSensors)
+        function gui = SimpleGui(sensorData, config)
+            importantSensors = config.impSens;
             %removes all open figures for a clean slate
             close all;
             if(nargin >0)
@@ -98,7 +104,7 @@ classdef SimpleGui <handle
                 gui.sensorproperties = cell(size(gui.data.datamatrix,1),1);
                 
                 %calls the figure object and defines some margins
-                gui.root = figure('Position', [100 200 1600 800], 'MenuBar', 'None');
+                gui.root = figure('Position',config.figPos , 'MenuBar', 'None');
                 divParams =[
                     gui.root.Position(1)+(gui.root.Position(3)*0.8)
                     gui.root.Position(2)+(gui.root.Position(4)*0.5)
@@ -110,7 +116,7 @@ classdef SimpleGui <handle
                 gui.sensorTranforms = {};
                 
                 %defines the amount of axes in the figure
-                naxes = 2;
+                naxes = config.naxes;
                 
                 %used to save the incoming data
                 gui.databacklog = transpose(sensorData.returnColumn([1,3]));
@@ -195,8 +201,8 @@ classdef SimpleGui <handle
                     case 2
                 sensProps.siOrgPrefix = event.NewData;
                 sensProps.siCurrPrefix = event.NewData;
-                sensProps.siOrgPrefix
-                gui.syncProperties(gui.selectedSensor);
+                gui.convTable.Data(gui.selectedSensor) = {sensProps.siOrgPrefix};
+                %gui.syncProperties(gui.selectedSensor);                
                     case 3
                  sensProps.siUnit = event.NewData;                               
                     otherwise
@@ -210,7 +216,11 @@ classdef SimpleGui <handle
             function cellEditCallback(hTable, editEvent)
                 %oldPreFix = editEvent.PreviousData;
                 editEvent
-                basePrefix = gui.sensorproperties{editEvent.Indices(1)}.siOrgPrefix;
+                if(~isempty(gui.sensorproperties{editEvent.Indices(1)}))
+                    basePrefix = gui.sensorproperties{editEvent.Indices(1)}.siOrgPrefix
+                else
+                    basePrefix = 'none'
+                end
                 newPreFix= editEvent.NewData;
                 
                 baseidx = find(strcmp(basePrefix,gui.SIPreFixes));                
@@ -298,7 +308,7 @@ classdef SimpleGui <handle
         %synchronises the Property List with the tables
         function syncProperties(gui, sensorIdx)
             idxs =  transpose(num2cell([1:size(gui.sensorproperties,1)]));
-            tmpCondata = gui.convTable.Data;
+            tmpCondata = gui.convTable.Data
             change = false;
             if(nargin ==1)
                 cellfun(@syncsensor, gui.sensorproperties,idxs);
@@ -307,8 +317,10 @@ classdef SimpleGui <handle
                 end
             end
             if(nargin ==2)
-                syncsensor(gui.sensorproperties{sensorIdx}, sensorIdx);
-                gui.convTable.Data = tmpCondata;
+                %syncsensor(gui.sensorproperties{sensorIdx}, sensorIdx);
+                tmpCondata{sensorIdx} = gui.sensorproperties{sensorIdx}.siOrgPrefix;
+                gui.convTable.Data = tmpCondata
+                drawnow();
             end
             function syncsensor(sensorC,idx)
                 if ( ~(isempty(sensorC)) & (isempty(sensorC.siOrgPrefix)) )

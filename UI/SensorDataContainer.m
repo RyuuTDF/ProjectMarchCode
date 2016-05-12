@@ -9,12 +9,12 @@ classdef SensorDataContainer <  handle
     methods(Static)
         function data = convertLocalData(input,amtCols)
             data = reshape([input{:}],amtCols,[]);
-            data = transpose(data)
+            data = transpose(data);
         end
         
         function data = convertNetworkData(input,amtCols)
             data = reshape(input,amtCols,[]);
-            data = transpose(data)
+            data = transpose(data);
         end
     end
     
