@@ -28,7 +28,7 @@ def main():
 			p = subprocess.Popen(['/opt/vc/bin/vcgencmd', 'measure_temp'], stdout=subprocess.PIPE, 
 			stderr=subprocess.PIPE)
 			out, err = p.communicate()
-			text = tabulate([[new_c, new_p, out[5:]], headers=['Connected','Packets/s', 'Temperature'])
+			text = tabulate([[new_c, new_p, out[5:]]], headers=['Connected','Packets/s', 'Temperature'])
 			stdscr.addstr(0, 0, text)
 			stdscr.refresh()
 			connected = new_c
