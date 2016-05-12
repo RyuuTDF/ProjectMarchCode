@@ -1,13 +1,11 @@
 # List of config files to be modified, appended to or to be replaced by new values
 append	dhcpcd.conf	/etc/dhcpcd.conf
-replace	70-ipv4-nat	/lib/dhcpcd/dhcpcd-hooks/70-ipv4-nat
-replace	dnsmasq.conf	/etc/dnsmasq.conf
-replace	hostapd.conf	/etc/hostapd/hostapd.conf
-replace	iptables.bridge.ipv4.conf	/etc/iptables.bridge.ipv4.conf
-modify	sysctl.conf	/etc/sysctl.conf
 modify	hostapd	/etc/default/hostapd
 modify	interfaces	/etc/network/interfaces
+modify	sysctl.conf	/etc/sysctl.conf
+replace	dnsmasq.conf	/etc/dnsmasq.conf
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
-replace	forwarder.service	/etc/systemd/system/forwarder.service
 replace	forwarder.py	/opt/forwarder/forwarder.py
+replace	forwarder.service	/etc/systemd/system/forwarder.service
+replace	hostapd.conf	/etc/hostapd/hostapd.conf
 replace	statuscli.py	/home/pi/statuscli.py
