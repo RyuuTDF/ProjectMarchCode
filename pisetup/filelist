@@ -1,4 +1,5 @@
 # List of config files to be modified, appended to or to be replaced by new values
+append	bashrc	/home/pi.bashrc
 append	dhcpcd.conf	/etc/dhcpcd.conf
 modify	hostapd	/etc/default/hostapd
 modify	interfaces	/etc/network/interfaces
