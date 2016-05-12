@@ -39,8 +39,11 @@ python projectmarchcode/pisetup/configurator.py
 
 printf "Configuring service for starting on boot...\n"
 chmod +x /opt/forwarder/forwarder.py
+chmod +x /home/pi/statuscli.py
+chown pi:pi /home/pi/statuscli.py
 systemctl enable hostapd
 systemctl enable dnsmasq
+systemctl enable forwarder
 
 # Next part is based on raspi-config (except thee last two lines)
 
