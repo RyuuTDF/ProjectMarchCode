@@ -9,7 +9,7 @@ classdef SimpleGui <handle
         sensortype = {};
         importantSensors = [];
         tablesize = 9;
-        sensorTranforms;
+        sensorTranforms;    
         
         sensorproperties;
         selectedSensor;
@@ -45,6 +45,7 @@ classdef SimpleGui <handle
         function gui = streamTest
 
             config = importdata('GuiConfig.mat');
+            config = SimpleGui.resize(config);
             %Sets up the environment
             if(strcmp(config.env,'local'))
                 env = LocalEnv(config.src);
@@ -86,6 +87,15 @@ classdef SimpleGui <handle
             newTable.FontSize = baseTable.FontSize;
             newTable.ColumnName =  [];
             newTable.RowName = baseTable.RowName;
+        end
+        
+        function config = resize(config)
+            switch config.size
+                case 's';
+                    config.figPos=config.figPosS;
+                case 'm'
+                    config.figPos=config.figPosM;
+            end
         end
     end
     
