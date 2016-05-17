@@ -95,9 +95,13 @@ classdef SimpleGui <handle
         function config = resize(config)
             switch config.size
                 case 's';
-                    config.figPos=config.figPosS;
+                    config.figPos = config.figPosS;
+                    config.font = config.fontS;
+                    config.impTabWidth = config.impTabWidthS;
                 case 'm'
                     config.figPos=config.figPosM;
+                    config.font = config.fontM; 
+                    config.impTabWidth = config.impTabWidthM;                    
             end
         end
         
@@ -110,6 +114,7 @@ classdef SimpleGui <handle
     methods
         %constructor function for the gui
         function gui = SimpleGui(sensorData, config)
+            gui.config = config;
             importantSensors = config.impSens;
             %removes all open figures for a clean slate
             close all;
@@ -152,18 +157,19 @@ classdef SimpleGui <handle
         function generateTables(gui,divParams)
             %generates table and properties for the table which shows the
             %metadata of the important sensors
+            gui.config
             gui.impSensorsLabel = uitable('Parent', gui.root,...
                 'Position', [25 divParams(4)+25 divParams(3) divParams(4)],...
                 'Data',gui.data.datamatrix(gui.importantSensors,1:2),...
-                'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', 14,...
-                'ColumnWidth', {150,250,'auto','auto','auto','auto'},...
+                'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', gui.config.font,...
+                'ColumnWidth',gui.config.impTabWidth ,...
                 'RowName',[],'ColumnName',{'Label', 'Type'}...
                 );
             %generates table and properties for the table which shows the
             %sensor data, is a seperate table because of rendering issues
             gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,gui.data.datamatrix(gui.importantSensors,3));
             gui.impSensorsData.ColumnFormat = {'shortG'};
-            gui.impSensorsData.ColumnWidth = {150};
+            gui.impSensorsData.ColumnWidth = {100};
             gui.impSensorsData.ColumnName = {'Value'};
             gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);            
             gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
@@ -181,11 +187,11 @@ classdef SimpleGui <handle
             
             %table which shows all sensors, starts hidden
             gui.allSensors = uitable('Parent', gui.root, 'Position', [divParams(3)+25 0 divParams(5) divParams(6) ],...
-                'Data',gui.data.datamatrix(:,1:3),'RowName',[],'ColumnName',[],...
-                'ColumnWidth', {100,150,30}, 'Visible','off','CellSelectionCallback',@showProperties...
+                'Data',gui.data.datamatrix(:,[1 3]),'RowName',[],'ColumnName',[],...
+                'ColumnWidth', {100,50}, 'Visible','off','CellSelectionCallback',@showProperties...
                 );
             gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
-            showAll = uicontrol('Style','checkbox','Callback',@toggleAll,'Position',[divParams(3) divParams(6)-25 25 25]);
+            showAll = uicontrol('Style','checkbox','Callback',@toggleAll,'Position',[divParams(3)+10 divParams(6)-25 15 15]);
             
             %table which shows the properties of the currently selected
             %sensor
@@ -269,20 +275,24 @@ classdef SimpleGui <handle
         
         %creates the graphs
         function generateGraphs(gui, naxes,divParams)
-            gui.ddg1 = uicontrol('Style', 'popup',...
-                'String', gui.sensorlabel,...
-                'Position', [25 370 100 50]...
-                );
-            gui.ddg2 = uicontrol('Style', 'popup',...
-                'String', gui.sensorlabel,'Value',2,...
-                'Position', [665 370 100 50]...
-                );
+
             gui.graph = axes('Units','pixels', 'Position', [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
             gui.graph.Units = 'normalized';
             gui.graph.Title.String = gui.data.returnEntry(gui.graphSensors(1),1);
             gui.graph2 = axes('Units','pixels', 'Position', [25+(divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
             gui.graph2.Units = 'normalized';
             gui.graph2.Title.String = gui.data.returnEntry(gui.graphSensors(2),1);
+            
+            
+            gui.ddg1 = uicontrol('Style', 'popup',...
+                'String', gui.sensorlabel,...
+                'Position', [25 divParams(4)-25 100 50]...
+            );
+        gui.ddg1.Position
+            gui.ddg2 = uicontrol('Style', 'popup',...
+                'String', gui.sensorlabel,'Value',2,...
+                'Position', [25+(divParams(3)/naxes) divParams(4)-25 100 50]...
+            );
         end
         
         %converts the data according to the settings in the data table
@@ -293,8 +303,7 @@ classdef SimpleGui <handle
             function convDataLine(x)
                 convData{x{1}} = x{2}(data{x{1}});
             end
-        end
-        
+        end        
         %updates the sensor tables in the GUI
         function update(gui,data, updateAll)
             outlierIdx = gui.checkValues(data.returnColumn(3));
