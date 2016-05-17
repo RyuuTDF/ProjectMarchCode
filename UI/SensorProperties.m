@@ -8,14 +8,20 @@ classdef SensorProperties
         siOrgPrefix = 'none';
         siCurrPrefix = 'none';
         transformation;
+        minVal;
+        maxVal;
     end
     
     methods
-        function sensor = SensorProperties(label, type)
+        function sensor = SensorProperties(label, type,min,max)
             if(nargin >0)
                 sensor.label = label;
                 sensor.type = type;        
                 sensor.transformation = @(x)x;
+                if(nargin >2)
+                    sensor.minVal = min;
+                    sensor.maxVal = max;
+                end
             end
         end
     end

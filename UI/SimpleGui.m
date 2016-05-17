@@ -7,6 +7,9 @@ classdef SimpleGui <handle
         data = {};
         sensorlabel = {};
         sensortype = {};
+        sensormin = [];
+        sensormax = [];
+        
         importantSensors = [];
         tablesize = 9;
         sensorTranforms;    
@@ -97,6 +100,11 @@ classdef SimpleGui <handle
                     config.figPos=config.figPosM;
             end
         end
+        
+        function html = colorgen(color,str) 
+            html = ['<html><table border=0 width=400 bgcolor=',color,'><TR><TD>',str,'</TD></TR> </table></html>'];
+        end
+
     end
     
     methods
@@ -110,6 +118,8 @@ classdef SimpleGui <handle
                 gui.data=sensorData;
                 gui.sensorlabel = sensorData.returnColumn(1);
                 gui.sensortype = sensorData.returnColumn(2);
+                gui.sensormin = cell2mat(sensorData.returnColumn(3));
+                gui.sensormax = cell2mat(sensorData.returnColumn(4));
                 gui.importantSensors = importantSensors;                
                 gui.sensorproperties = cell(size(gui.data.datamatrix,1),1);
                 
@@ -180,8 +190,9 @@ classdef SimpleGui <handle
             %table which shows the properties of the currently selected
             %sensor
             gui.propTable = uitable('Parent',gui.root, 'Position', ...
-                [gui.convTable.Position(1)+ gui.convTable.Position(3)+25, gui.convTable.Position(2)+25, 300, 300],'ColumnEditable', true...
-                ,'CellEditCallback',@editProp, 'ColumnFormat', {'char',gui.SIPreFixes,'char'});
+                [gui.convTable.Position(1)+ gui.convTable.Position(3)+25, gui.convTable.Position(2)+25, 400, 300],'ColumnEditable', true...
+                ,'CellEditCallback',@editProp, 'ColumnFormat', {'char',gui.SIPreFixes,'char'},...
+                'RowName',[],'ColumnName', {'Label','Prefix','Unit','Min','Max'});
             
             %callback function which show the properties of a sensor when
             %selected
@@ -191,10 +202,12 @@ classdef SimpleGui <handle
                     sensProps = gui.sensorproperties(sensIdx);
                     sensProps = sensProps{1};
                     if (isempty(sensProps) == 1)
-                        sensProps = SensorProperties(gui.sensorlabel{sensIdx},  gui.sensortype{sensIdx});
+                        sensProps = SensorProperties(gui.sensorlabel{sensIdx},  gui.sensortype{sensIdx},...
+                            gui.sensormin(sensIdx),gui.sensormax(sensIdx))
                         gui.sensorproperties(sensIdx) = {sensProps};
                     end
-                    gui.propTable.Data = {sensProps.label, sensProps.siOrgPrefix, sensProps.siUnit};
+                    gui.propTable.Data = {sensProps.label, sensProps.siOrgPrefix, sensProps.siUnit,...
+                        sensProps.minVal,sensProps.maxVal};
                     gui.selectedSensor = sensIdx;
                 end
             end
@@ -284,9 +297,13 @@ classdef SimpleGui <handle
         
         %updates the sensor tables in the GUI
         function update(gui,data, updateAll)
+            outlierIdx = gui.checkValues(data.returnColumn(3));
             gui.graphSensors(1)=gui.ddg1.Value;
             gui.graphSensors(2)=gui.ddg2.Value;
             
+            if(size(outlierIdx,1) > 0)
+                gui.allSensors.Data = gui.markoutliers(outlierIdx,data.datamatrix(:,1:3));
+            end
             
             gui.impSensorsData.Data = gui.convertData(data.datamatrix(gui.importantSensors,3));
             if(updateAll)
@@ -313,12 +330,11 @@ classdef SimpleGui <handle
             load('Properties.mat');
             gui.sensorproperties = sensProps;
             gui.syncProperties();
-        end
-        
+        end        
         %synchronises the Property List with the tables
         function syncProperties(gui, sensorIdx)
             idxs =  transpose(num2cell([1:size(gui.sensorproperties,1)]));
-            tmpCondata = gui.convTable.Data
+            tmpCondata = gui.convTable.Data;
             change = false;
             if(nargin ==1)
                 cellfun(@syncsensor, gui.sensorproperties,idxs);
@@ -342,6 +358,18 @@ classdef SimpleGui <handle
                         tmpCondata{idx} = sensorC.siOrgPrefix;
                     end
                 end
+            end
+        end
+        function exIdx = checkValues(gui,data)
+            datarr = cell2mat(data);
+             mincm = gui.sensormin < datarr;
+             maxcm = gui.sensormax > datarr;
+             exIdx = find(mincm | maxcm);
+        end
+        function data = markoutliers(gui, outliers,data)
+            arrayfun(@markrow, outliers);
+            function markrow(idx)
+                data{idx,3} =  gui.colorgen('#FF0000',num2str(data{idx,3}));
             end
         end
     end
