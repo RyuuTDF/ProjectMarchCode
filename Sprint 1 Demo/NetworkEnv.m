@@ -20,7 +20,6 @@ classdef NetworkEnv < Env
             packet = step(obj.receiver);
             if ~isempty(packet)
                 packetdata = data_deserialize(packet);
-                length(packetdata)
                 obj.currentdata = SensorDataContainer(SensorDataContainer.convertNetworkData(packetdata,5));
                 
                 fprintf('Packet received\n');
