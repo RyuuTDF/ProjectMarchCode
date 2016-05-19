@@ -48,7 +48,7 @@ classdef SimpleGui <handle
             %env = LocalEnv('TestData2.mat');
             env = NetworkEnv();
 
-            gui= SimpleGui(env.currentdata,[1:13]);
+            gui= SimpleGui(env.currentData,[1:13]);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,'Position',[0,750,25,25]);
             
             %callback function for the update checkbox; only updates data when
@@ -59,7 +59,7 @@ classdef SimpleGui <handle
                 while gui.updateFlag;
                     allCnt = allCnt+1;
                     env = updateData(env);
-                    gui.update(env.currentdata, mod(allCnt,50) ==0);
+                    gui.update(env.currentData, mod(allCnt,50) ==0);
                     pause(gui.updateRate);
                 end
             end
