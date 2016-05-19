@@ -1,48 +1,73 @@
 function serialize(block)
-setup(block);
+    %SERIALIZE Serialize a signal
+    % This S-function serializes the data of a input signal and combines it with
+    % the properties of the signal (put in via GUI), the properties being:
+    % 1. Label
+    % 2. Type
+    % 3. Minimum Safe Value
+    % 4. Maximum Safe Value
+    % The resulting array can be send through the rest of the Simulink model.
+
+    
+    % The setup method is used to setup the basic attributes of the S-function.
+    % Do not add any other call to the main body of the function.  
+    setup(block);
 end
 
+% Function: setup
+% Functionality: Sets up the block's basic characteristics such as:
+%   - Input ports
+%   - Output ports
+%   - Dialog parameters
+%	- Options
 function setup(block)
+    %Define the amount and type of ports.
     block.NumInputPorts = 1;
     block.NumOutputPorts = 1;
-
+    
     block.SetPreCompInpPortInfoToDynamic;
     block.SetPreCompOutPortInfoToDynamic;
 
     % Register parameters. In order:
     % 1. Label
     % 2. Type
-    % 3. Min
-    % 4. Max
+    % 3. Minimum Safe Value
+    % 4. Maximum Safe Value
     block.NumDialogPrms = 4;
     block.DialogPrmsTunable = {'Nontunable','Nontunable','Nontunable','Nontunable'};    
 
+    %Serialize the label to get it's serialized length.
+    label_ser_length = length(signal_serialize(block.DialogPrm(1).Data));
+    
+    %Setup the input port.
     block.InputPort(1).DatatypeID  = -1;  % inherit from EtherCAT block
-    block.InputPort(1).Complexity  = 'Real';
+    block.InputPort(1).Complexity  = 'Real'; %real
     block.InputPort(1).Dimensions = 1;
 
-    la = signal_serialize(block.DialogPrm(1).Data);
-
-    % Override output port properties
+    %Setup the output port.
     block.OutputPort(1).DatatypeID  = 3; % serialized uint8 array
-    block.OutputPort(1).Complexity  = 'Real';
-    block.OutputPort(1).Dimensions = [length(la)+36 1];
+    block.OutputPort(1).Complexity  = 'Real'; %real
+    block.OutputPort(1).Dimensions = [label_ser_length+36 1]; %Length label + 4x numeric
 
+    %Setup the sample time.
     block.SampleTimes = [0.02 0];
     block.SetAccelRunOnTLC(false);
     
+    % Register the block's functions.
     block.RegBlockMethod('Outputs', @Outputs);
-    %Initialize the constant parameters
     block.RegBlockMethod('PostPropagationSetup', @DoPostPropSetup); 
-    %Assign the constant parameters
     block.RegBlockMethod('Start', @Start);
     
 end
 
+% Function: Outputs
+% Functionality: Generates the block outputs during a simulation step.
 function Outputs(block)
+    %Get the signal value and serialize it.
     value = block.InputPort(1).Data;
     value_ser = signal_serialize(value);
 
+    %Concatenate and output the serialized array.
     output = [
         block.Dwork(1).Data;
         block.Dwork(2).Data;
@@ -54,134 +79,159 @@ function Outputs(block)
     block.OutputPort(1).Data = output;
 end
 
+% Function: DoPostPropSetup
+% Functionality: Sets up the work areas and the state variables.
 function DoPostPropSetup(block)
+    % Serialize the label to determine it's length.
     ser_label = signal_serialize(block.DialogPrm(1).Data);
     
+    % Define the amount of constant parameters.
+    % 1. Label
+    % 2. Type
+    % 3. Minimum Safe Value
+    % 4. Maximum Safe Value
     block.NumDworks                = 4;
     
     block.Dwork(1).Name            = 'ser_label'; 
-    block.Dwork(1).DatatypeID      = 3;
-    block.Dwork(1).Dimensions      = length(ser_label);
-    block.Dwork(1).Complexity      = 'Real';
+    block.Dwork(1).DatatypeID      = 3; %uint8
+    block.Dwork(1).Dimensions      = length(ser_label); 
+    block.Dwork(1).Complexity      = 'Real'; %real
 
     block.Dwork(2).Name            = 'ser_type'; 
-    block.Dwork(2).DatatypeID      = 3;
+    block.Dwork(2).DatatypeID      = 3; %uint8
     block.Dwork(2).Dimensions      = 9;
     block.Dwork(2).Complexity      = 'Real';
     
     block.Dwork(3).Name            = 'ser_minimum'; 
-    block.Dwork(3).DatatypeID      = 3;
+    block.Dwork(3).DatatypeID      = 3; %uint8
     block.Dwork(3).Dimensions      = 9;
     block.Dwork(3).Complexity      = 'Real';
     
     block.Dwork(4).Name            = 'ser_maximum'; 
-    block.Dwork(4).DatatypeID      = 3;
+    block.Dwork(4).DatatypeID      = 3; %uint8
     block.Dwork(4).Dimensions      = 9;
     block.Dwork(4).Complexity      = 'Real';
 end
 
+% Function: Start
+% Functionality: Initializes the work areas and the state variables values.
 function Start(block)
+    % 1. Label
+    % 2. Type
+    % 3. Minimum Safe Value
+    % 4. Maximum Safe Value
+    % These parameters are constant and only need to be serialized once.
     block.Dwork(1).Data = signal_serialize(block.DialogPrm(1).Data);
     block.Dwork(2).Data = signal_serialize(block.DialogPrm(2).Data); 
     block.Dwork(3).Data = signal_serialize(block.DialogPrm(3).Data);
     block.Dwork(4).Data = signal_serialize(block.DialogPrm(4).Data); 
 end
 
-function m = signal_serialize(v)
-    % dispatch according to type
-    if isnumeric(v) 
-        m = serialize_numeric(v);
-    elseif ischar(v)
-        m = serialize_string(v);
-    elseif islogical(v)
-        m = serialize_logical(v);
+% Function: signal_serialize
+% Functionality: Returns a uint8 array based on the input value.
+% 
+% Notes: The returned array can be used as input of signalDeserialize to 
+%   retrieve the original value.
+function output = signal_serialize(value)
+% Adapted from hlp_serialize.m
+% (C) 2010 Christian Kothe & Tim Hutt
+% Redistribution and use in source and binary forms, with or without
+% modification, are permitted.
+
+    % Dispatch according to type
+    if isnumeric(value) 
+        output = serialize_numeric(value);
+    elseif ischar(value)
+        output = serialize_string(value);
+    elseif islogical(value)
+        output = serialize_logical(value);
 	else
 		error('Unsupported data type');
     end
 end
 
-% single scalar
-function m = serialize_scalar(v)
+% Single scalar
+function out = serialize_scalar(value)
     % Data type & data
-    m = [class2tag(class(v)); typecast(v,'uint8').'];
+    out = [class2tag(class(value)); typecast(value,'uint8').'];
 end
 
-% char arrays
-function m = serialize_string(v)
-    if size(v,1) == 1
+% Char arrays
+function output = serialize_string(value)
+    if size(value,1) == 1
         % horizontal string: Type, Length, and Data
-        m = [uint8(0); typecast(uint32(length(v)),'uint8').'; uint8(v(:))];
-    elseif sum(size(v)) == 0
+        output = [uint8(0); typecast(uint32(length(value)),'uint8').'; uint8(value(:))];
+    elseif sum(size(value)) == 0
         % '': special encoding
-        m = uint8(200);
+        output = uint8(200);
     else
         % general char array: Tag & Number of dimensions, Dimensions, Data
-        m = [uint8(132); ndims(v); typecast(uint32(size(v)),'uint8').'; uint8(v(:))];
+        output = [uint8(132); ndims(value); typecast(uint32(size(value)),'uint8').'; uint8(value(:))];
     end
 end
 
-% logical arrays
-function m = serialize_logical(v)
+% Logical arrays
+function output = serialize_logical(value)
     % Tag & Number of dimensions, Dimensions, Data
-    m = [uint8(133); ndims(v); typecast(uint32(size(v)),'uint8').'; uint8(v(:))];
+    output = [uint8(133); ndims(value); typecast(uint32(size(value)),'uint8').'; uint8(value(:))];
 end
 
-% non-complex and non-sparse numerical matrix
-function m = serialize_numeric_simple(v)
+% Non-complex and non-sparse numerical matrix
+function output = serialize_numeric_simple(value)
     % Tag & Number of dimensions, Dimensions, Data
-    m = [16+class2tag(class(v)); ndims(v); typecast(uint32(size(v)),'uint8').'; typecast(v(:).','uint8').'];
+    output = [16+class2tag(class(value)); ndims(value); typecast(uint32(size(value)),'uint8').'; typecast(value(:).','uint8').'];
 end
 
 % Numeric Matrix: can be real/complex, sparse/full, scalar
-function m = serialize_numeric(v)
-    if issparse(v)
+function output = serialize_numeric(value)
+    if issparse(value)
         % Data Type & Dimensions
-        m = [uint8(130); typecast(uint64(size(v,1)), 'uint8').'; typecast(uint64(size(v,2)), 'uint8').']; % vectorize
+        output = [uint8(130); typecast(uint64(size(value,1)), 'uint8').'; typecast(uint64(size(value,2)), 'uint8').']; % vectorize
         % Index vectors
-        [i,j,s] = find(v);        
+        [i,j,s] = find(value);        
         % Real/Complex
-        if isreal(v)
-            m = [m; serialize_numeric_simple(i); serialize_numeric_simple(j); 1; serialize_numeric_simple(s)];
+        if isreal(value)
+            output = [output; serialize_numeric_simple(i); serialize_numeric_simple(j); 1; serialize_numeric_simple(s)];
         else
-            m = [m; serialize_numeric_simple(i); serialize_numeric_simple(j); 0; serialize_numeric_simple(real(s)); serialize_numeric_simple(imag(s))];
+            output = [output; serialize_numeric_simple(i); serialize_numeric_simple(j); 0; serialize_numeric_simple(real(s)); serialize_numeric_simple(imag(s))];
         end
-    elseif ~isreal(v)
+    elseif ~isreal(value)
         % Data type & contents
-        m = [uint8(131); serialize_numeric_simple(real(v)); serialize_numeric_simple(imag(v))];
-    elseif isscalar(v)
+        output = [uint8(131); serialize_numeric_simple(real(value)); serialize_numeric_simple(imag(value))];
+    elseif isscalar(value)
         % Scalar
-        m = serialize_scalar(v);
+        output = serialize_scalar(value);
     else
         % Simple matrix
-        m = serialize_numeric_simple(v);
+        output = serialize_numeric_simple(value);
     end
 end
 
 % *container* class to byte
-function b = class2tag(cls)
+function classtag = class2tag(cls)
 	switch cls
 		case 'string'
-            b = uint8(0);
+            classtag = uint8(0);
 		case 'double'
-			b = uint8(1);
+			classtag = uint8(1);
 		case 'single'
-			b = uint8(2);
+			classtag = uint8(2);
 		case 'int8'
-			b = uint8(3);
+			classtag = uint8(3);
 		case 'uint8'
-			b = uint8(4);
+			classtag = uint8(4);
 		case 'int16'
-			b = uint8(5);
+			classtag = uint8(5);
 		case 'uint16'
-			b = uint8(6);
+			classtag = uint8(6);
 		case 'int32'
-			b = uint8(7);
+			classtag = uint8(7);
 		case 'uint32'
-			b = uint8(8);
+			classtag = uint8(8);
 		case 'int64'
-			b = uint8(9);
+			classtag = uint8(9);
 		case 'uint64'
-			b = uint8(10);
+			classtag = uint8(10);
 		otherwise
 			error('Unknown class');
     end
