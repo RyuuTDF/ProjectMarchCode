@@ -3,3 +3,4 @@ UDP Test/
 *.autosave
 *.asv
 *.mexw64
+*.elf
