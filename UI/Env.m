@@ -3,7 +3,7 @@ classdef Env
 	%   Setup the environment
 
 	properties
-        currentdata
+        currentData
     end
 
 	methods
