@@ -40,6 +40,7 @@ classdef SimpleGui <handle
         
         graphSensors =[1 2];
         databacklog;
+        dataSlidingWindow;
         backlogPointer;
         backlogSize;
     end
@@ -149,7 +150,8 @@ classdef SimpleGui <handle
                 naxes = config.naxes;
                 gui.backlogSize=config.backlogSize;
                 %used to save the incoming data
-                gui.databacklog = zeros(gui.backlogSize,size(gui.data.datamatrix,1));
+                gui.databacklog = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
+                gui.dataSlidingWindow = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
                 gui.backlogPointer = 1;
                 %generates other graphic items
                 gui.generateGraphs(naxes,divParams);
@@ -360,11 +362,11 @@ classdef SimpleGui <handle
             
             
             axes(gui.graph2);
-            plot(transpose(gui.databacklog(:,gui.graphSensors(2))));
+            plot(gui.dataSlidingWindow(gui.graphSensors(2),:));
             gui.graph2.Title.String = data.returnEntry(gui.graphSensors(2),1);
             
             axes(gui.graph);
-            plot(transpose(gui.databacklog(:,gui.graphSensors(1))));
+            plot(gui.dataSlidingWindow(gui.graphSensors(1),:));
             gui.graph.Title.String = data.returnEntry(gui.graphSensors(1),1);
             drawnow;
         end
@@ -410,8 +412,14 @@ classdef SimpleGui <handle
             end
         end
         function updateDatabacklog(gui, data)
+            idx = gui.backlogPointer
             newdata = cell2mat(data.datamatrix(:,3));
-            gui.databacklog(gui.backlogPointer,:) = newdata;
+            gui.databacklog(:,gui.backlogPointer) = newdata;
+
+            tail = gui.databacklog(:,gui.backlogPointer+1 : end)
+            head = gui.databacklog(:,1 : gui.backlogPointer)
+            
+            gui.dataSlidingWindow = [tail head];
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
         end
     end
