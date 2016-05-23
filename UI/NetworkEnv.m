@@ -10,7 +10,8 @@ classdef NetworkEnv < Env
         % Function: NetworkEnv
         % Functionality: Constructs the Network Environment
         function obj = NetworkEnv()
-            obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);
+            obj.receiver = tcpclient('192.168.21.1', 65507);
+            %obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',);
              while isempty(obj.currentData)
                 obj = updateData(obj);
             end
