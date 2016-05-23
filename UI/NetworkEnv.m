@@ -19,24 +19,48 @@ classdef NetworkEnv < Env
             %Receive the first packet
             obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);
             
-            %Bouw onderstaande om naar iets dat alles behalve reference paccket negeert.           
+            %BOUW onderstaande om naar iets dat alles behalve reference packet negeert.           
             while isempty(obj.currentData)
                 obj = updateData(obj);
             end
         end
         
+        
         % Function: updateData
-        % Functionality: Update the current data set if a new packet has arrived.
+        % Functionality: Update the relevant data if a new packet has arrived.
         function obj = updateData(obj)
-            %TO DO: Ombouwen dat deze de delta ondersteund.
             packet = step(obj.receiver);
+            
             if ~isempty(packet)
-                packetdata = deserialize(packet);
-                length(packetdata)
-                obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetdata,5));
+                % CHECK FOOTER FOR ID
                 
+                % IF Footer = 1
+                    %obj = receivedReference(obj, packet);
+                    
+                % IF Footer = 2
+                    obj = receivedDelta(obj, packet);
+               
+                % ELSE THROW ERROR WANT INVALID PACKET
+                    %error('Invalid Packet Type');
+                
+                %Testing Purposes
                 fprintf('Packet received\n');
             end
+        end
+
+        
+        % Function: receivedReference
+        % Functionality: Updates the referencePacket & referenceChecksum      
+        function obj = receivedReference(obj, packet)
+
+        end
+
+        
+        % Function: updateData
+        % Functionality: Updates the currentData, according to the delta      
+        function obj = receivedDelta(obj, packet)
+        	packetdata = deserialize(packet);
+        	obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetdata,5));
         end
     end
 end
