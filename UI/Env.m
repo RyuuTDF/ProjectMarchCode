@@ -4,6 +4,8 @@ classdef Env
 
 	properties
         currentData
+        referencePacket
+        referenceChecksum
     end
 
 	methods
