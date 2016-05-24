@@ -1,7 +1,6 @@
 classdef LocalEnv < Env
     %LOCALENV Setup the environment for local usage of data
     %   Setup the environment for local usage of data
-    
 	methods
         % Function: LocalEnv
         % Functionality: Constructs the Local Environment
