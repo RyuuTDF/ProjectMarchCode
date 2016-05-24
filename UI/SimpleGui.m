@@ -227,6 +227,7 @@ classdef SimpleGui <handle
             );
             formulaField = uicontrol('Style','edit',...
                 'Position', [gui.propTable.Position(1:3) 50]...
+                ,'Callback',@editFormula...
             )
             
             %callback function which show the properties of a sensor when
@@ -244,7 +245,7 @@ classdef SimpleGui <handle
                         gui.sensorProperties(sensIdx) = {sensProps};
                     end
                     gui.propTable.Data = {sensProps.label, sensProps.siOrgPrefix, sensProps.siUnit,...
-                        sensProps.minVal,sensProps.maxVal,imp};
+                        sensProps.transformation(sensProps.minVal),sensProps.transformation(sensProps.maxVal),imp};
                     formulaField.String = func2str(sensProps.transformation);
                     gui.selectedSensor = sensIdx;
                 end
@@ -304,6 +305,8 @@ classdef SimpleGui <handle
                 end
             end
             
+            %updates the important sensor window with the currently selected
+            %important sensors
             function updateImpSens(idx, NewData)
                 if(NewData)
                     gui.importantSensors = [gui.importantSensors idx];
@@ -317,6 +320,16 @@ classdef SimpleGui <handle
                 gui.impSensorsLabel.Data = gui.data.datamatrix(gui.importantSensors,1:2);
                 gui.impSensorsData.Data = gui.data.datamatrix(gui.importantSensors,3);
                 gui.syncProperties();
+            end
+            
+            %
+            function editFormula(control, event)
+                sensProps = gui.sensorProperties(gui.selectedSensor);
+                sensProps = sensProps{1};
+                sensProps.transformation = str2func(control.String);
+                gui.sensorProperties(gui.selectedSensor) = {sensProps};
+                gui.saveProperties();
+                %gui.sensorTransforms(
             end
         end
         
@@ -343,16 +356,34 @@ classdef SimpleGui <handle
                 'Position', [25+(divParams(3)/naxes) divParams(4) 100 50]...
                 ,'Max', 7 ...
                 );
-            legend('Goats');
         end
         
         %converts the data according to the settings in the data table
-        function convData = convertData(gui, data)
+        function convData = convertData(gui, data,selection)
             convData = data;
-            cellfun(@convDataLine,gui.sensorTranforms);
+            tabidxs =  1:size(data,1);
+            switch selection
+                case 'imp'
+                    sensidxs = gui.importantSensors;
+                otherwise
+                    sensidxs = 1:size(data,1);
+            end
+            arrayfun(@convDataLine,sensidxs,tabidxs);
             
-            function convDataLine(x)
-                convData{x{1}} = x{2}(data{x{1}});
+            function convDataLine(sensIdx,tabIdx)
+                prop = gui.sensorProperties{sensIdx};
+                if(~isempty(prop))
+                    fn = prop.transformation;
+                    switch selection
+                        case 'imp'
+                            convData{tabIdx} = fn(data{tabIdx});
+                        case 'all'
+                            convData{tabIdx,2} = fn(data{tabIdx,2});
+                        case 'log'
+                            convData{sensIdx} = fn(data{sensIdx})                            
+                        otherwise
+                    end
+                end
             end
         end
         %updates the sensor tables in the GUI
@@ -363,13 +394,13 @@ classdef SimpleGui <handle
             
             if(size(outlierIdx,1) > 0)
                 gui.allSensors.Data = ...
-                    [gui.markoutliers(outlierIdx,data.datamatrix(:,[1 3])) gui.impSensCheck];
+                    gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
             end
             
             gui.impSensorsData.Data = ...
-                gui.convertData(data.datamatrix(gui.importantSensors,3));
+                gui.convertData(data.datamatrix(gui.importantSensors,3),'imp');
             if(updateAll)
-                gui.allSensors.Data = [data.datamatrix(:,[1 3]) gui.impSensCheck];
+                gui.allSensors.Data = gui.convertData(data.datamatrix(:,[1 3]),'all');
             end
             gui.updateDatabacklog(data);
             
@@ -426,7 +457,7 @@ classdef SimpleGui <handle
             end
         end
         function updateDatabacklog(gui, data)
-            newdata = cell2mat(data.datamatrix(:,3));
+            newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
             gui.databacklog(:,gui.backlogPointer) = newdata;
             
             tail = gui.databacklog(:,gui.backlogPointer+1 : end);
