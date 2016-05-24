@@ -117,6 +117,11 @@ classdef SimpleGui <handle
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
         end
         
+        %gets the exponent of the scientific notation of the input
+        function exp = getSciExp(input)
+            ex
+        end
+        
     end
     
     methods
@@ -465,6 +470,36 @@ classdef SimpleGui <handle
             
             gui.dataSlidingWindow = [tail head];
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
+        end
+        function scaleSI(gui,sensIdx,tableIdx)
+            val= gui.impSensorsData.Data(tableIdx);
+            exp = floor(log10(val));
+            switch exp
+                case num2cell(0:2)
+                    siPrefix='none';
+                    exp = 0;
+                case num2cell(3:5)
+                    siPrefix='K';
+                    exp = 3;
+                case num2cell(6:8)
+                    siPrefix='M';  
+                    exp = 6;
+                case num2cell(9:11)
+                    siPrefix='G';
+                    exp = 9;
+                case num2cell(-3:-1)
+                    siPrefix='m';   
+                    exp = -3;
+                case num2cell(-6:-4)
+                    siPrefix='µ';   
+                    exp = -6;
+                case num2cell(-7:-10)
+                    siPrefix='n';   
+                    exp = -9;
+                otherwise
+            end
+            val = val/ (10^exp);
+            
         end
     end
 end
