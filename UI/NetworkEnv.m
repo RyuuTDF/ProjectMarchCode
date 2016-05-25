@@ -33,15 +33,14 @@ classdef NetworkEnv < Env
             
             if ~isempty(packet)
                 % CHECK FOOTER FOR ID
-                
-                % IF Footer = 1
-                    %obj = receivedReference(obj, packet);
-                    
-                % IF Footer = 2
-                    obj = receivedDelta(obj, packet);
-               
-                % ELSE THROW ERROR WANT INVALID PACKET
-                    %error('Invalid Packet Type');
+                packetType = packet(end);
+                if packetType == 1
+                    obj = receivedReference(obj, packet);                    
+                elseif packetType == 2
+                    obj = receivedDelta(obj, packet);               
+                else THROW ERROR WANT INVALID PACKET
+                    error('Invalid Packet Type');
+                end
                 
                 %Testing Purposes
                 fprintf('Packet received\n');
@@ -52,14 +51,18 @@ classdef NetworkEnv < Env
         % Function: receivedReference
         % Functionality: Updates the referencePacket & referenceChecksum      
         function obj = receivedReference(obj, packet)
-
+            obj.referenceData = zlibdecode(packet(0:end-3));
+            packetData = deserialize(obj.referenceData);
+            obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
+            
         end
 
         
         % Function: updateData
         % Functionality: Updates the currentData, according to the delta      
         function obj = receivedDelta(obj, packet)
-        	packetdata = deserialize(packet);
+            decompressed = bitxor(zlibdecode(packet(0:end-3)), obj.referenceData);            
+        	packetdata = deserialize(decompressed);
         	obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetdata,5));
         end
     end
