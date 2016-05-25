@@ -11,7 +11,7 @@ classdef SimpleGui <handle
         
         importantSensors = [];
         tableSize = 9;
-        sensorTranforms;
+        sensorSiTrans;
         impSensCheck;
         
         sensorProperties;
@@ -115,13 +115,7 @@ classdef SimpleGui <handle
         function html = colorgen(color,str)
             html = ['<html><table border=0 width=400 bgcolor=',color,...
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
-        end
-        
-        %gets the exponent of the scientific notation of the input
-        function exp = getSciExp(input)
-            ex
-        end
-        
+        end        
     end
     
     methods
@@ -151,7 +145,7 @@ classdef SimpleGui <handle
                     gui.root.Position(3)*0.2
                     gui.root.Position(4)
                     ];
-                gui.sensorTranforms = {};
+                gui.sensorSiTrans = cell(size(gui.data.datamatrix,1),1);
                 
                 %defines the amount of axes in the figure
                 naxes = config.naxes;
@@ -283,8 +277,10 @@ classdef SimpleGui <handle
             %callback function for selecting another SI-prefix to correctly
             %transform the data
             function cellEditCallback(hTable, editEvent)
-                if(~isempty(gui.sensorProperties{editEvent.Indices(1)}))
-                    basePrefix = gui.sensorProperties{editEvent.Indices(1)}.siOrgPrefix;
+                tableIdx = editEvent.Indices(1);
+                sensorIdx = gui.importantSensors(tableIdx);
+                if(~isempty(gui.sensorProperties{sensorIdx}))
+                    basePrefix = gui.sensorProperties{sensorIdx}.siOrgPrefix;
                 else
                     basePrefix = 'none';
                 end
@@ -298,7 +294,7 @@ classdef SimpleGui <handle
                 
                 convfn = @(x)x*( newfn(1)/basefn(1));
                 
-                gui.sensorTranforms = [gui.sensorTranforms {{editEvent.Indices(1) convfn}}];
+                gui.sensorSiTrans{sensorIdx} = convfn;
             end
             
             %function for toggeling the visibility of the All Sensors table
@@ -325,6 +321,7 @@ classdef SimpleGui <handle
                 gui.impSensorsLabel.Data = gui.data.datamatrix(gui.importantSensors,1:2);
                 gui.impSensorsData.Data = gui.data.datamatrix(gui.importantSensors,3);
                 gui.syncProperties();
+                
             end
             
             %
@@ -334,7 +331,7 @@ classdef SimpleGui <handle
                 sensProps.transformation = str2func(control.String);
                 gui.sensorProperties(gui.selectedSensor) = {sensProps};
                 gui.saveProperties();
-                %gui.sensorTransforms(
+                gui.syncProperties();
             end
         end
         
@@ -378,14 +375,19 @@ classdef SimpleGui <handle
             function convDataLine(sensIdx,tabIdx)
                 prop = gui.sensorProperties{sensIdx};
                 if(~isempty(prop))
+                    siFn = gui.sensorSiTrans{sensIdx};
+                    if(isempty(siFn))
+                        siFn= @(x)x;
+                    end
+                        
                     fn = prop.transformation;
                     switch selection
                         case 'imp'
-                            convData{tabIdx} = fn(data{tabIdx});
+                            convData{tabIdx} = siFn(fn(data{tabIdx}));
                         case 'all'
                             convData{tabIdx,2} = fn(data{tabIdx,2});
                         case 'log'
-                            convData{sensIdx} = fn(data{sensIdx})                            
+                            convData{sensIdx} = fn(data{sensIdx});                            
                         otherwise
                     end
                 end
@@ -418,6 +420,7 @@ classdef SimpleGui <handle
             axes(gui.graph);
             plot(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)));
             gui.graph.Title.String = 'Graph 1';
+            
             drawnow limitrate;
         end
         %saves the sensor properties from file
@@ -437,6 +440,7 @@ classdef SimpleGui <handle
             tmpCondata = gui.convTable.Data;
             arrayfun(@syncsensor, gui.importantSensors,idxs);
             gui.convTable.Data = tmpCondata;
+            gui.scaleSI();
             drawnow();
             function syncsensor(sensid, tabid)
                 sensorC = gui.sensorProperties{sensid};
@@ -471,35 +475,49 @@ classdef SimpleGui <handle
             gui.dataSlidingWindow = [tail head];
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
         end
-        function scaleSI(gui,sensIdx,tableIdx)
-            val= gui.impSensorsData.Data(tableIdx);
-            exp = floor(log10(val));
-            switch exp
-                case num2cell(0:2)
-                    siPrefix='none';
-                    exp = 0;
-                case num2cell(3:5)
-                    siPrefix='K';
-                    exp = 3;
-                case num2cell(6:8)
-                    siPrefix='M';  
-                    exp = 6;
-                case num2cell(9:11)
-                    siPrefix='G';
-                    exp = 9;
-                case num2cell(-3:-1)
-                    siPrefix='m';   
-                    exp = -3;
-                case num2cell(-6:-4)
-                    siPrefix='µ';   
-                    exp = -6;
-                case num2cell(-7:-10)
-                    siPrefix='n';   
-                    exp = -9;
-                otherwise
+        function scaleSI(gui)
+            sensorIds = gui.importantSensors
+            tableIds = [1:size(sensorIds,2)]
+           % arrayfun(@scaleEntry, tableIds,sensorIds);            
+            function scaleEntry(tableIdx, sensIdx)
+                val = gui.impSensorsData.Data{tableIdx};
+                orgPrefix = gui.sensorProperties{sensIdx}.siOrgPrefix;
+                trans =  gui.siTransformations{find(strcmp(orgPrefix,gui.siPrefixes))};
+                transfn = @(x)x / trans(1);
+                val = transfn(val);
+                exp = floor(log10(val));
+                switch exp
+                    case num2cell(0:2)
+                        siPrefix='none';
+                        exp = 0;
+                    case num2cell(3:5)
+                        siPrefix='k';
+                        exp = 3;
+                    case num2cell(6:8)
+                        siPrefix='M';  
+                        exp = 6;
+                    case num2cell(9:11)
+                        siPrefix='G';
+                        exp = 9;
+                    case num2cell(-3:-1)
+                        siPrefix='m';   
+                        exp = -3;
+                    case num2cell(-6:-4)
+                        siPrefix='µ';   
+                        exp = -6;
+                    case num2cell(-7:-10)
+                        siPrefix='n';   
+                        exp = -9;
+                    otherwise
+                        siPrefix='none';
+                        exp = 0;
+                end
+                val = val/ (10^exp);
+                gui.impSensorsData.Data{tableIdx} = val;
+                gui.convTable.Data{tableIdx} = siPrefix;
+                
+                gui.sensorSiTrans{sensIdx} = @(x)x/(10^exp);
             end
-            val = val/ (10^exp);
-            
         end
     end
 end
