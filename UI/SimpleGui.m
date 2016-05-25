@@ -277,24 +277,7 @@ classdef SimpleGui <handle
             %callback function for selecting another SI-prefix to correctly
             %transform the data
             function cellEditCallback(hTable, editEvent)
-                tableIdx = editEvent.Indices(1);
-                sensorIdx = gui.importantSensors(tableIdx);
-                if(~isempty(gui.sensorProperties{sensorIdx}))
-                    basePrefix = gui.sensorProperties{sensorIdx}.siOrgPrefix;
-                else
-                    basePrefix = 'none';
-                end
-                newPreFix= editEvent.NewData;
-                
-                baseidx = find(strcmp(basePrefix,gui.siPrefixes));
-                newidx = find(strcmp(newPreFix,gui.siPrefixes));
-                
-                basefn = gui.siTransformations{baseidx};
-                newfn = gui.siTransformations{newidx};
-                
-                convfn = @(x)x*( newfn(1)/basefn(1));
-                
-                gui.sensorSiTrans{sensorIdx} = convfn;
+                gui.transformSiData(editEvent.Indices(1),editEvent.NewData);             
             end
             
             %function for toggeling the visibility of the All Sensors table
@@ -475,6 +458,24 @@ classdef SimpleGui <handle
             gui.dataSlidingWindow = [tail head];
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
         end
+        function transformSiData(gui,tableIdx,newPreFix)
+            sensorIdx = gui.importantSensors(tableIdx);
+            if(~isempty(gui.sensorProperties{sensorIdx}))
+                basePrefix = gui.sensorProperties{sensorIdx}.siOrgPrefix;
+            else
+                basePrefix = 'none';
+            end
+            
+            baseidx = find(strcmp(basePrefix,gui.siPrefixes));
+            newidx = find(strcmp(newPreFix,gui.siPrefixes));
+            
+            basefn = gui.siTransformations{baseidx};
+            newfn = gui.siTransformations{newidx};
+            
+            convfn = @(x)x*( newfn(1)/basefn(1));
+            
+            gui.sensorSiTrans{sensorIdx} = convfn;
+        end
         function scaleSI(gui)
             sensorIds = gui.importantSensors
             tableIds = [1:size(sensorIds,2)]
@@ -513,10 +514,9 @@ classdef SimpleGui <handle
                         exp = 0;
                 end
                 val = val/ (10^exp);
-                gui.impSensorsData.Data{tableIdx} = val;
-                gui.convTable.Data{tableIdx} = siPrefix;
                 
-                gui.sensorSiTrans{sensIdx} = @(x)x/(10^exp);
+                 gui.convTable.Data{tableIdx} = siPrefix;  
+                 gui.transformSiData(tableIdx,siPrefix);
             end
         end
     end
