@@ -74,6 +74,9 @@ classdef SimpleGui <handle
                 env = NetworkEnv();
             end
             
+            while isempty(env.currentData)
+                env = updateData(env);
+            end
             
             gui= SimpleGui(env.currentData,config);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,...
