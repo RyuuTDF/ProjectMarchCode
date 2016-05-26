@@ -1,7 +1,7 @@
 
 classdef SimpleGui <handle
     % SIMPLEGUI Shows a graphical representation of the send data using
-    %t ables and graphs
+    % tables and graphs
     
     properties
         config; % used to save the configuration file
