@@ -93,7 +93,7 @@ classdef SimpleGui <handle
                 allUpdate= config.allUpdateRate/config.updateFreq;
                 impUpdate= config.impUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1
+                    cnt = cnt+1;
                     env = updateData(env);
                     gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
                     

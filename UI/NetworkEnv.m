@@ -12,7 +12,7 @@ classdef NetworkEnv < Env
         % Functionality: Constructs the Network Environment
         function obj = NetworkEnv()
             %Initialize sender and receiver.
-            obj.sender = dsp.UDPSender('RemoteIPAddress','192.168.21.1','RemoteIPPort', 25001);
+            obj.sender = dsp.UDPSender('RemoteIPAddress','192.168.20.1','RemoteIPPort', 25001);
             obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);
             
             %Initialize the values.
@@ -35,14 +35,13 @@ classdef NetworkEnv < Env
                 packetType = packet(end);
                 if packetType == 1
                     %Testing Purposes
-                    %fprintf('Reference Packet received\n');
+                    fprintf('Reference Packet received\n');
                     
                     obj = receivedReference(obj, packet); 
                     
                 elseif packetType == 2
                     %Testing Purposes
                     %fprintf('Delta Packet received\n');
-                    
                     obj = receivedDelta(obj, packet);
                    
                 else
@@ -57,15 +56,17 @@ classdef NetworkEnv < Env
         function obj = receivedReference(obj, packet)
             %Update the reference data.
             obj.referenceData = zlibdecode(packet(1:end-3));
-            obj.referenceChecksum = packet(end-2);
+            x = [packet(end-2) packet(end-1)];
+            obj.referenceChecksum = typecast(uint8(x), 'uint16');
         end
 
         
         % Function: updateData
         % Functionality: Updates the currentData, according to the delta      
         function obj = receivedDelta(obj, packet)
-            packetChecksum = packet(end-2);
-            
+            x = [packet(end-2) packet(end-1)];
+            packetChecksum = typecast(uint8(x), 'uint16');
+          
             %Check if the GUI has the correct reference packet
             if packetChecksum == obj.referenceChecksum
             	%Decompress and deserialize the data.
@@ -86,6 +87,7 @@ classdef NetworkEnv < Env
                 
             else
                 %Otherwise ask for new reference packet
+                obj.lastDeltaChecksum = packetChecksum;
                 obj = requestNewReference(obj);
             end
         end
@@ -93,7 +95,7 @@ classdef NetworkEnv < Env
         % Function: requestNewReference
         % Functionality: Request a new reference packet if checksums don't match.   
         function obj = requestNewReference(obj)
-            step(obj.sender, obj.referenceChecksum);
+            step(obj.sender, obj.lastDeltaChecksum);
             
             %Start the timer in case the referencepacket gets dropped.
             t=timer();
@@ -124,8 +126,8 @@ classdef NetworkEnv < Env
                     
                     %Only update delta checksum if it's a delta packet.
                     elseif packetType == 2
-                        packetChecksum = packet(end-2);
-                        obj.lastDeltaChecksum = packetChecksum;
+                        x = [packet(end-2) packet(end-1)];
+                        obj.lastDeltaChecksum = typecast(uint8(x), 'uint16');
                     end
                     
                     %Testing Purposes
