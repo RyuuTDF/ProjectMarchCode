@@ -1,11 +1,12 @@
 classdef Env
 	%ENV Setup the environment.
-	%   Setup the environment
+	% Setup the environment
 
 	properties
         currentData
-        referencePacket
+        referenceData
         referenceChecksum
+        simulationTime
     end
 
 	methods
