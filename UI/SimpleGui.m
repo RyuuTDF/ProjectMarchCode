@@ -450,10 +450,10 @@ classdef SimpleGui <handle
             outlierIdx = gui.checkValues(data.returnColumn(3));
             
             % if a value is not in the defined range, mark the outlier
-            if(size(outlierIdx,1) > 0)
-                gui.allSensors.Data = ...
-                    gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
-            end
+%             if(size(outlierIdx,1) > 0)
+%                 gui.allSensors.Data = ...
+%                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+%             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
             gui.impSensorsData.Data = ...
