@@ -203,7 +203,6 @@ classdef SimpleGui <handle
             % generates table and properties for the table which shows the
             % sensor data, is a seperate table because of rendering issues
             gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
-            %gui.impSensorsLabel.Position(4) = gui.impSensorsLabel.Extent(4);
             
             
             gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
@@ -399,10 +398,14 @@ classdef SimpleGui <handle
                 );
         end
         
-        %converts the data according to the settings in the data table
+        % Function: convertData
+        % Functionality: transforms the data according to the SI unit and
+        % transformation formula assigned to the respective sensor
         function convData = convertData(gui, data,selection)
             convData = data;
             tabidxs =  1:size(data,1);
+            % Gets the indices of the sensors based on the table the data 
+            % is written to
             switch selection
                 case 'imp'
                     sensidxs = gui.importantSensors;
@@ -411,15 +414,22 @@ classdef SimpleGui <handle
             end
             arrayfun(@convDataLine,sensidxs,tabidxs);
             
+            % Function: convDataLine
+            % Functionality: transform data of sensor represented by
+            % sensIdx
             function convDataLine(sensIdx,tabIdx)
+                %gets the properties of the sensor and checks if empty
                 prop = gui.sensorProperties{sensIdx};
                 if(~isempty(prop))
                     siFn = gui.sensorSiTrans{sensIdx};
+                    % if no SI function is assigned, generate one
                     if(isempty(siFn))
                         siFn= @(x)x;
                     end
                         
                     fn = prop.transformation;
+                    % Determines which part of the data should be
+                    % transformed
                     switch selection
                         case 'imp'
                             convData{tabIdx} = siFn(fn(data{tabIdx}));
@@ -432,30 +442,37 @@ classdef SimpleGui <handle
                 end
             end
         end
-        %updates the sensor tables in the GUI
+        
+        % Function: update
+        % Functionality: updates the sensor tables and graphs in the GUI
         function update(gui,data, updateAll,updateImp)
+            % checks if all sensor data is in the defined range
             outlierIdx = gui.checkValues(data.returnColumn(3));
-            gui.graphSensors{1}=gui.ddg1.Value;
-            gui.graphSensors{2}=gui.ddg2.Value;
             
+            % if a value is not in the defined range, mark the outlier
             if(size(outlierIdx,1) > 0)
                 gui.allSensors.Data = ...
                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
             end
+            % updates the imporant sensor if the flag is set to true
             if(updateImp)
             gui.impSensorsData.Data = ...
                 gui.convertData(data.datamatrix(gui.importantSensors,3),'imp');
             end
+            % updates all sensordata if the flas is set to true
             if(updateAll)
                 gui.allSensors.Data = gui.convertData(data.datamatrix(:,[1 3]),'all');
             end
+            
+            % updates the graphs
             gui.updateDatabacklog(data);
             
-            
+            gui.graphSensors{1}=gui.ddg1.Value;
+            gui.graphSensors{2}=gui.ddg2.Value;
+
             axes(gui.graph2);
             plot(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)));
             gui.graph2.Title.String = 'Graph 2';
-            %legend(gui.sensorLabel(gui.graphSensors{2}));
             
             axes(gui.graph);
             plot(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)));
@@ -463,26 +480,34 @@ classdef SimpleGui <handle
             
             drawnow limitrate;
         end
-        %saves the sensor properties from file
+        
+        % Function: saveProperties
+        % Functionality: saves the sensor properties to file
         function saveProperties(gui)
             sensProps = gui.sensorProperties;
             save('Properties.mat', 'sensProps')
         end
-        %loads the sensor properties from file
+        
+        % Function: loadProperties
+        % Functionality: loads the sensor properties from file
         function loadProperties(gui)
             load('Properties.mat');
             gui.sensorProperties = sensProps;
             gui.syncProperties();
         end
-        %synchronises the Property List with the tables
+        
+        % Function: syncProperties
+        % Functionality: synchronises the SI-prefix with the tables
         function syncProperties(gui)
             idxs =  [1:size(gui.importantSensors,2)];
             tmpCondata = gui.convTable.Data;
-            arrayfun(@syncsensor, gui.importantSensors,idxs);
+            arrayfun(@syncSensor, gui.importantSensors,idxs);
             gui.convTable.Data = tmpCondata;
             gui.scaleSI();
-            drawnow();
-            function syncsensor(sensid, tabid)
+            
+            % Function: syncSensor
+            % Functionality: checks if the SI-prefix of the sensor changed 
+            function syncSensor(sensid, tabid)
                 sensorC = gui.sensorProperties{sensid};
                 if ( ~(isempty(sensorC)) & (isempty(sensorC.siOrgPrefix)) )
                     sensorC.siOrgPrefix = 'none';
@@ -493,18 +518,29 @@ classdef SimpleGui <handle
                 end
             end
         end
+        
+        % Function: checkValues
+        % Functionality: checks for the given data whether they are between
+        % the given minimum and maximum
         function exIdx = checkValues(gui,data)
             datarr = cell2mat(data);
             mincm = gui.sensorMin < datarr;
             maxcm = gui.sensorMax > datarr;
             exIdx = find(mincm | maxcm);
         end
+        
+        % Function: markoutliers
+        % Functionality; marks the sensors which data is outside the range
+        % red
         function data = markoutliers(gui, outliers,data)
             arrayfun(@markrow, outliers);
             function markrow(idx)
                 data{idx,2} =  gui.colorgen('#FF0000',num2str(data{idx,2}));
             end
         end
+        
+        % Function: updateDatabacklog
+        % Functionality: saves the data in order to plot in on the graph
         function updateDatabacklog(gui, data)
             newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
             gui.databacklog(:,gui.backlogPointer) = newdata;
@@ -515,6 +551,10 @@ classdef SimpleGui <handle
             gui.dataSlidingWindow = [tail head];
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
         end
+        
+        % Function: transformSiData
+        % Functionality: calculates the Si Transformation for a sensor
+        % based on the new Prefix
         function transformSiData(gui,tableIdx,newPreFix)
             sensorIdx = gui.importantSensors(tableIdx);
             if(~isempty(gui.sensorProperties{sensorIdx}))
@@ -533,10 +573,16 @@ classdef SimpleGui <handle
             
             gui.sensorSiTrans{sensorIdx} = convfn;
         end
+        
+        % Function: scaleSI
+        % Functionality: determines the best SI-prefix for all important sensors
         function scaleSI(gui)
             sensorIds = gui.importantSensors
             tableIds = [1:size(sensorIds,2)]
-           % arrayfun(@scaleEntry, tableIds,sensorIds);            
+           % arrayfun(@scaleEntry, tableIds,sensorIds);
+           
+           % Function: scaleEntry
+           % Functionality: determines the best SI-prefix for given sensors
             function scaleEntry(tableIdx, sensIdx)
                 val = gui.impSensorsData.Data{tableIdx};
                 orgPrefix = gui.sensorProperties{sensIdx}.siOrgPrefix;
