@@ -4,6 +4,6 @@ function timedOut(~, ~, obj)
 	step(obj.sender, obj.lastDeltaChecksum);
 	
     %Testing Purposes
-    %fprintf('TIMEOUT!\n');
+    fprintf('TIMEOUT!\n');
 end
 
