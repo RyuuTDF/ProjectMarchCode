@@ -16,7 +16,9 @@ classdef NetworkEnv < Env
             obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);
             
             obj.referenceChecksum = 0;
+            obj.lastDeltaChecksum = 0;
             obj.simulationTime = 0;
+            
         end
         
         
@@ -29,19 +31,20 @@ classdef NetworkEnv < Env
                 % Check the footer for packet type.
                 packetType = packet(end);
                 if packetType == 1
-                    fprintf('Reference Packet received\n');
+                    %Testing Purposes
+                    %fprintf('Reference Packet received\n');
+                    
                     obj = receivedReference(obj, packet);
                     
                 elseif packetType == 2
-                    fprintf('Delta Packet received\n');
-                    obj = receivedDelta(obj, packet);
+                    %Testing Purposes
+                    %fprintf('Delta Packet received\n');
                     
+                    obj = receivedDelta(obj, packet);
+                   
                 else
                     error('Invalid Packet Type');
                 end
-                
-                %Testing Purposes
-                
             end
         end
 
@@ -49,29 +52,31 @@ classdef NetworkEnv < Env
         % Function: receivedReference
         % Functionality: Updates the referencePacket & referenceChecksum      
         function obj = receivedReference(obj, packet)
+            %Update the reference data.
             obj.referenceData = zlibdecode(packet(1:end-3));
             obj.referenceChecksum = packet(end-2);
-            %TODO: Checksum = uint16
-            packetData = deserialize(obj.referenceData);
-            
-            obj.simulationTime = packetData(1);
-            
-            packetData = packetData(2:end);
-            obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
         end
 
         
         % Function: updateData
         % Functionality: Updates the currentData, according to the delta      
         function obj = receivedDelta(obj, packet)
-            if packet(end-2) == obj.referenceChecksum
+            packetChecksum = packet(end-2);
+            if packetChecksum == obj.referenceChecksum
             	decompressed = bitxor(zlibdecode(packet(1:end-3)), obj.referenceData);
                 packetData = deserialize(decompressed);
                 
-                obj.simulationTime = packetData(1);
+                temp = packetData(1);
+                time = temp{1,1};
                 
-                packetData = packetData(2:end);
-                obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
+                if obj.simulationTime < time
+                    obj.simulationTime = time;
+                    obj.lastDeltaChecksum = packetChecksum;
+                
+                    packetData = packetData(2:end);
+                    obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
+                end
+                
             else
                 obj = requestNewReference(obj);
             end
@@ -82,6 +87,7 @@ classdef NetworkEnv < Env
         function obj = requestNewReference(obj)
             step(obj.sender, obj.referenceChecksum);
             
+            %Start the timer in case the referencepacket gets dropped.
             t=timer();
             t.ExecutionMode = 'fixedDelay';
             t.TimerFcn = {@timedOut, obj};
@@ -91,7 +97,7 @@ classdef NetworkEnv < Env
   
             newReference = false;
             
-            while newReference == false
+            while ~newReference
                 packet = step(obj.receiver);
                    
                 if ~isempty(packet)
@@ -105,7 +111,11 @@ classdef NetworkEnv < Env
                         newReference = true;
                         obj = receivedReference(obj, packet);
                         
-                        fprintf('Reference Packet received\n');
+                        %Testing Purposes
+                        %fprintf('Reference Packet received\n');
+                    elseif packetType == 2
+                        packetChecksum = packet(end-2);
+                        obj.lastDeltaChecksum = packetChecksum;
                     end
                     
                     %Testing Purposes
