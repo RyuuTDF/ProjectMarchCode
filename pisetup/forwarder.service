@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/forwarder/forwarder.py
+ExecStart=/opt/forwarder/forwarder
 
 [Install]
 WantedBy=multi-user.target
