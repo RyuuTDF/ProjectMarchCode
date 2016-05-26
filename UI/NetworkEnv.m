@@ -15,6 +15,7 @@ classdef NetworkEnv < Env
             obj.sender = dsp.UDPSender('RemoteIPAddress','192.168.21.1','RemoteIPPort', 25001);
             obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);
             
+            %Initialize the values.
             obj.referenceChecksum = 0;
             obj.lastDeltaChecksum = 0;
             obj.simulationTime = 0;
@@ -29,12 +30,14 @@ classdef NetworkEnv < Env
             
             if ~isempty(packet)
                 % Check the footer for packet type.
+                % 1 = reference packet
+                % 2 = delta packet
                 packetType = packet(end);
                 if packetType == 1
                     %Testing Purposes
                     %fprintf('Reference Packet received\n');
                     
-                    obj = receivedReference(obj, packet);
+                    obj = receivedReference(obj, packet); 
                     
                 elseif packetType == 2
                     %Testing Purposes
@@ -62,13 +65,17 @@ classdef NetworkEnv < Env
         % Functionality: Updates the currentData, according to the delta      
         function obj = receivedDelta(obj, packet)
             packetChecksum = packet(end-2);
+            
+            %Check if the GUI has the correct reference packet
             if packetChecksum == obj.referenceChecksum
-            	decompressed = bitxor(zlibdecode(packet(1:end-3)), obj.referenceData);
+            	%Decompress and deserialize the data.
+                decompressed = bitxor(zlibdecode(packet(1:end-3)), obj.referenceData);
                 packetData = deserialize(decompressed);
                 
                 temp = packetData(1);
                 time = temp{1,1};
                 
+                %Only accept later send delta packets
                 if obj.simulationTime < time
                     obj.simulationTime = time;
                     obj.lastDeltaChecksum = packetChecksum;
@@ -78,6 +85,7 @@ classdef NetworkEnv < Env
                 end
                 
             else
+                %Otherwise ask for new reference packet
                 obj = requestNewReference(obj);
             end
         end
@@ -101,7 +109,7 @@ classdef NetworkEnv < Env
                 packet = step(obj.receiver);
                    
                 if ~isempty(packet)
-                    % Check the footer for packet type.
+                    % Check if the packet is the reference packet.
                     packetType = packet(end);
                     
                     if packetType == 1
@@ -113,6 +121,8 @@ classdef NetworkEnv < Env
                         
                         %Testing Purposes
                         %fprintf('Reference Packet received\n');
+                    
+                    %Only update delta checksum if it's a delta packet.
                     elseif packetType == 2
                         packetChecksum = packet(end-2);
                         obj.lastDeltaChecksum = packetChecksum;
