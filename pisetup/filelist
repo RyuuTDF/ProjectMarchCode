@@ -6,7 +6,9 @@ modify	interfaces	/etc/network/interfaces
 modify	sysctl.conf	/etc/sysctl.conf
 replace	dnsmasq.conf	/etc/dnsmasq.conf
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
-replace	forwarder	/opt/forwarder/forwarder
+replace	forwarder	/opt/exo/forwarder
+replace	reference	/opt/exo/reference
 replace	forwarder.service	/etc/systemd/system/forwarder.service
+replace	reference.service	/etc/systemd/system/reference.service
 replace	hostapd.conf	/etc/hostapd/hostapd.conf
 replace	statuscli.py	/home/pi/statuscli.py
