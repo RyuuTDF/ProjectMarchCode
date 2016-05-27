@@ -11,7 +11,6 @@ classdef NetworkEnv < Env
         % Function: NetworkEnv
         % Functionality: Constructs the Network Environment
         function obj = NetworkEnv()
-
             %Initialize sender and receiver.
             obj.sender = dsp.UDPSender('RemoteIPAddress','192.168.20.1','RemoteIPPort', 25001);
             obj.receiver = dsp.UDPReceiver('RemoteIPAddress', '0.0.0.0','MaximumMessageLength',65507);

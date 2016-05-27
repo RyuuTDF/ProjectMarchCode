@@ -1,20 +1,18 @@
 /*
-    Simple udp server
-    Silver Moon (m00n.silv3r@gmail.com)
-*/
-#include<stdio.h> //printf
-#include<string.h> //memset
-#include<stdlib.h> //exit(0);
-#include<arpa/inet.h>
-#include<sys/socket.h>
+ Simple udp server
+ Silver Moon (m00n.silv3r@gmail.com)
+ */
+#include <stdio.h> //printf
+#include <string.h> //memset
+#include <stdlib.h> //exit(0);
+#include <arpa/inet.h>
+#include <sys/socket.h>
 #include <time.h>
-
 
 #define BUFLEN 65507  //Max length of buffer
 #define PORT 25000   //The port on which to listen for incoming data
- 
-void die(char *s)
-{
+
+void die(char *s) {
 	perror(s);
 	exit(1);
 }
@@ -22,74 +20,61 @@ void die(char *s)
 static long get_micros() {
 	struct timespec ts;
 	timespec_get(&ts, TIME_UTC);
-	return (long)ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
+	return (long) ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
 }
- 
- 
-int main( int argc, char *argv[] )
-{
-	printf("q");
-	if( argc != 3)
-	{
-		die( "Two arguments (packet count and output file name) expected!\n");
-	}
-	
-	struct sockaddr_in si_me, si_other;
-	printf("w");
 
-	int s, slen = sizeof(si_other), recv_len, recv_count = 0, exp_count = atoi(argv[1]);
+int main(int argc, char *argv[]) {
+	if (argc != 3) {
+		die("Two arguments (packet count and output file name) expected!\n");
+	}
+
+	struct sockaddr_in si_me, si_other;
+
+	int s, slen = sizeof(si_other), recv_len, recv_count = 0, exp_count = atoi(
+			argv[1]);
 	char buf[BUFLEN];
 
-	printf("e");
 	//create a UDP socket
-	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
-	{
+	if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		die("Socket initialization failed.\n");
 	}
 
 	// zero out the structure
 	memset((char *) &si_me, 0, sizeof(si_me));
-	
-	printf("r");
 
 	si_me.sin_family = AF_INET;
 	si_me.sin_port = htons(PORT);
 	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	//bind socket to port
-	if( bind(s , (struct sockaddr*)&si_me, sizeof(si_me) ) == -1)
-	{
+	if (bind(s, (struct sockaddr*) &si_me, sizeof(si_me)) == -1) {
 		die("Socket binding failed.\n");
 	}
-	printf("t");
 	FILE *outfile;
 	outfile = fopen(argv[2], "w");
-	fprintf(outfile, "%s\t%s\t%s\n", "rPacketNo", "rPacketTime", "rPacketTimeDouble");
-	printf("y");
+	fprintf(outfile, "%s\t%s\t%s\t%s\t%s", "rPacketNo", "rPacketTime",
+			"rPacketTimeDouble");
 	printf("Waiting for data to arrive\n");
 	//keep listening for data
-	while(recv_count < exp_count -1)
-	{
-		
-		
+	while (recv_count < exp_count) {
+
 		//try to receive some data, this is a blocking call
-		if ((recv_len = recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen)) == -1)
-		{
+		if ((recv_len = recvfrom(s, buf, BUFLEN, 0,
+				(struct sockaddr *) &si_other, &slen)) == -1) {
 			die("Receiving data failed.\n");
 		}
 		long curTime = get_micros();
-		if (recv_count == 0)
-		{
+		if (recv_count == 0) {
 			//Only notify once.
 			printf("Receiving data\n");
 		}
-		double timeDouble;
-		long i;
-		memcpy(&timeDouble, buf + 1, 8);
-		memcpy(&i, buf + 9, 4);
-		
-		fprintf(outfile, "%d\t%ld\t%lf\n", i, curTime, timeDouble);		
-		
+		double timeDouble = buf[1];
+		int i = buf[9];
+
+		fprintf(outfile, "%d\t%ld\t%lf", i, curTime, timeDouble);
+
+		//TODO: log data time
+
 		++recv_count;
 
 	}

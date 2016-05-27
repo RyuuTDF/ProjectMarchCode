@@ -23,7 +23,7 @@ printf "Upgrading installed software... (this may take quite some time)\n"
 apt-get -qq -y upgrade
 
 printf "Installing required software...\n"
-apt-get -qq -y install git python dnsmasq hostapd python-pip
+apt-get -qq -y install git python dnsmasq hostapd python-pip gcc zlib1g-dev
 pip install flask -q
 pip install tabulate -q
 
@@ -35,16 +35,23 @@ printf "Temporarily stopping services before configuration...\n"
 service hostapd stop
 service dnsmasq stop
 
+printf "Compiling bridge software...\n"
+
+gcc projectmarchcode/pisetup/forwarder.c -o projectmarchcode/pisetup/forwarder -std=c11 -lz -D_BSD_SOURCE -Wall
+gcc projectmarchcode/pisetup/reference.c -o projectmarchcode/pisetup/reference -std=c11 -lz -D_BSD_SOURCE -Wall
+
 printf "Executing configuration script...\n"
 python projectmarchcode/pisetup/configurator.py
 
 printf "Configuring service for starting on boot...\n"
-chmod +x /opt/forwarder/forwarder.py
+chmod +x /opt/exo/forwarder
+chmod +x /opt/exo/reference
 chmod +x /home/pi/statuscli.py
 chown pi:pi /home/pi/statuscli.py
 systemctl enable hostapd
 systemctl enable dnsmasq
 systemctl enable forwarder
+systemctl enable reference
 
 # Next part is based on raspi-config (except thee last two lines)
 
