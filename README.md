@@ -6,9 +6,8 @@ How to use
 
 Setup Local
 --------------
-- execute StressTest.slx
+- ensure the configuration is set to 'local'
 - in SimpleGui.mat, execute SimpleGui.testStream
-- if this doesn't work, make sure the IP-adresses in NetworkEnv.mat are configured correctly
 
 GUI
 --------------
