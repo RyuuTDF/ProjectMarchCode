@@ -38,7 +38,7 @@ service dnsmasq stop
 printf "Compiling bridge software...\n"
 
 gcc projectmarchcode/pisetup/forwarder.c -o projectmarchcode/pisetup/forwarder -std=c11 -lz -D_BSD_SOURCE -Wall
-gcc projectmarchcode/pisetup/reference.c -o projectmarchcode/pisetup/reference -std=c11 -lz -D_BSD_SOURCE -Wall
+gcc projectmarchcode/pisetup/reference.c -o projectmarchcode/pisetup/reference -std=c11 -D_BSD_SOURCE -Wall
 
 printf "Executing configuration script...\n"
 python projectmarchcode/pisetup/configurator.py

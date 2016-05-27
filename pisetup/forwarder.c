@@ -8,13 +8,14 @@
 #include <stdio.h> //printf
 #include <string.h> //memset
 #include <stdlib.h> //exit(0);
-#include <fcntl.h>
-#include <time.h>
-#include <sys/mman.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <zlib.h>
+#include <fcntl.h> //file operations
+#include <time.h> // Performance timing
+#include <sys/mman.h> //Shared memory
+#include <arpa/inet.h> //Address structure for sockets
+#include <sys/socket.h> //Sockets
+#include <zlib.h> //Compression
 
+//TODO: Move some of these constants to a config file
 #define SERVER "192.168.21.1"
 #define CLIENT "192.168.20.255"
 #define MMAPFILE "/run/exoshm"
@@ -22,24 +23,26 @@
 #define BUFLEN 65507  //Max length of buffer
 #define PORT 25000   //The port on which to send data
 
+/**
+ * Returns the current time in microsecond resolution. Suitable for performance timing.
+ */
 static long get_micros() {
 	struct timespec ts;
 	timespec_get(&ts, TIME_UTC);
 	return (long) ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
 }
 
+/**
+ * Helper function for printing errors and aborting the program.
+ */
 void die(char *s) {
 	perror(s);
 	exit(1);
 }
 
-int openShm(char** mem) {
-	int fd = open(MMAPFILE, O_RDWR);
-	*mem = mmap((caddr_t) 0, getpagesize(), PROT_WRITE | PROT_READ, MAP_SHARED,
-			fd, 0);
-	return 0;
-}
-
+/**
+ * Update the shared memory with the given values.
+ */
 int updateShm(char* mem, int connected, long double packets,
 		long double simTime, short chk) {
 	memcpy(mem, &connected, 4);
@@ -50,17 +53,32 @@ int updateShm(char* mem, int connected, long double packets,
 }
 
 int main(int argc, char *argv[]) {
+	//At first, open the shared memory. Other programs rely on this being present.
+	int mfd = open(MMAPFILE, O_RDWR | O_CREAT);
+	if (mfd == -1) {
+		perror("open");
+		return 1;
+	}
+	char mt[getpagesize()];
+	//Write data with the size of one page to initialise the file and memory
+	write(mfd, mt, getpagesize());
+	char* shMem = mmap((caddr_t) 0, getpagesize(), PROT_WRITE | PROT_READ,
+			MAP_SHARED, mfd, 0);
+	if (shMem == MAP_FAILED) {
+		perror("mmap");
+		return 1;
+	}
+
+	//Variable definitions
+	//Address structs for the listening socktet and one for the designated receiver
 	struct sockaddr_in si_me, si_other, si_out;
-
-	int s_in, s_out, recv_len;
+	int socket_in, socket_out, recv_len, reference_len = 0, broadcastEnable = 1;
 	unsigned int slen = sizeof(si_other);
-
 	unsigned char buf[BUFLEN], reference[BUFLEN], compressed[BUFLEN], type;
+	long last;
 
-	int refLength = 0;
-
-	//create a UDP socket
-	if ((s_in = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+	//Setup for listening socket
+	if ((socket_in = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		die("Socket initialization failed.\n");
 	}
 
@@ -74,13 +92,16 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 	//bind socket to port
-	if (bind(s_in, (struct sockaddr*) &si_me, sizeof(si_me)) == -1) {
-		die("Socket binding failed.\n");
+	while (bind(socket_in, (struct sockaddr*) &si_me, sizeof(si_me)) == -1) {
+		printf("Network not ready (yet). Retrying in 10 seconds\n");
+		sleep(10);
 	}
 
-	if ((s_out = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+	//Setup socket for sending data
+	if ((socket_out = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		die("socket (out)");
 	}
+
 
 	memset((char *) &si_out, 0, sizeof(si_out));
 	si_out.sin_family = AF_INET;
@@ -91,56 +112,44 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-	int broadcastEnable = 1;
-	setsockopt(s_out, SOL_SOCKET, SO_BROADCAST, &broadcastEnable,
+	setsockopt(socket_out, SOL_SOCKET, SO_BROADCAST, &broadcastEnable,
 			sizeof(broadcastEnable));
-	long last = get_micros();
-	/*char* shMem;
-	 openShm(&shMem);*/
-	int mfd = open(MMAPFILE, O_RDWR | O_CREAT);
-	if (mfd == -1) {
-		perror("open");
-		return 1;
-	}
-	char mt[getpagesize()];
-	write(mfd, mt, getpagesize());
-	char* shMem = mmap((caddr_t) 0, getpagesize(), PROT_WRITE | PROT_READ,
-			MAP_SHARED, mfd, 0);
-	if (shMem == MAP_FAILED) {
-		perror("mmap");
-		return 1;
-	}
-	//keep listening for data
+	last = get_micros();
+
+	//Receive loop
 	while (1) {
 
 		//try to receive some data, this is a blocking call
-		if ((recv_len = recvfrom(s_in, buf, BUFLEN, 0,
+		if ((recv_len = recvfrom(socket_in, buf, BUFLEN, 0,
 				(struct sockaddr *) &si_other, &slen)) == -1) {
 			die("Receiving data failed.\n");
 		}
 
+		//Get the simulation time from the buffer before modifications
 		long double simTime;
 		memcpy(&simTime, buf + 1, 8);
 
-		if (recv_len != refLength) {
+		if (recv_len != reference_len) {
 			//New reference packet
-			printf("New reference %d != %d\n", recv_len, refLength);
+			printf("New reference %d != %d\n", recv_len, reference_len);
 			memcpy(reference, buf, recv_len);
+			//Remove the temporary file containing the previous reference packet
 			char filename[sizeof(char) * strlen(TMP_DIR) + 5];
-			sprintf(filename, "%s%x", TMP_DIR, refLength);
+			sprintf(filename, "%s%x", TMP_DIR, reference_len);
 			if (access(filename, F_OK)) {
 				remove(filename);
 			}
-			refLength = recv_len;
+			reference_len = recv_len;
 			type = 1;
 		} else {
 			//Delta packet
+			//Xor the packet with the reference packet to improve the compression ratio
 			for (int i = 0; i < recv_len; ++i) {
 				buf[i] = reference[i] ^ buf[i];
 			}
-			//memcpy(buf, xorred, recv_len);
 			type = 2;
 		}
+		//Compress the buffer to improve the performance of the wireless network
 		z_stream strm;
 		strm.zalloc = Z_NULL;
 		strm.zfree = Z_NULL;
@@ -157,30 +166,32 @@ int main(int argc, char *argv[]) {
 		}
 		int lenOut = strm.total_out;
 		deflateEnd(&strm);
+		//Add a footer to the data to be sent, in this way the receiver can find out what to do
 		unsigned short chk = recv_len;
 		memcpy(compressed + lenOut, &chk, 2);
 		compressed[lenOut + 2] = type;
 		//send the message
-		if (sendto(s_out, compressed, lenOut + 3, 0,
+		if (sendto(socket_out, compressed, lenOut + 3, 0,
 				(struct sockaddr *) &si_out, slen) == -1) {
-			//die("sendto()");
-			//printf("Package lost...\n");
-			//Package lost... Well, ignore for now...
+			//Buffer for sending packats is full
+			//The protocol does not fail on packet loss, so safely ignore this for now
+			//TODO: implement packet loss statistics for local user interface
 		}
+		//If a new reference packet is generated, store this for the reference server program
 		if (type == 1) {
-			//Store in file
 			char filename[sizeof(char) * strlen(TMP_DIR) + 5];
-			sprintf(filename, "%s%x", TMP_DIR, refLength);
+			sprintf(filename, "%s%x", TMP_DIR, reference_len);
 			int fd = open(filename, O_WRONLY | O_CREAT);
 			write(fd, compressed, lenOut + 3);
 			close(fd);
 		}
+		//Update statistics for the local user interface
 		long now = get_micros();
 		long double packets = 1000000.0 / (now - last);
 		last = now;
 		updateShm(shMem, 1, packets, simTime, chk);
 	}
 	close(mfd);
-	shutdown(s_out, SHUT_RDWR);
-	shutdown(s_in, SHUT_RDWR);
+	shutdown(socket_out, SHUT_RDWR);
+	shutdown(socket_in, SHUT_RDWR);
 }
