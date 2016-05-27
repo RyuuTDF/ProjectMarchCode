@@ -94,7 +94,7 @@ classdef SimpleGui <handle
                     env = updateData(env);
                     gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
                     
-                    %pause(gui.updateRate);
+                    pause(gui.updateRate);
                 end
             end
         end
@@ -139,7 +139,16 @@ classdef SimpleGui <handle
         function html = colorgen(color,str)
             html = ['<html><table border=0 width=400 bgcolor=',color,...
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
-        end        
+        end   
+        
+        % Function: plotLine
+        % Functionality: draws a line as one would expect when using the
+        % plot function, but without computational overhead
+        function plotLine(mat)
+            dims = size(mat);
+            idxs = (1:dims(1)).';
+            line(idxs,mat);
+        end
     end
     
     methods
@@ -469,13 +478,15 @@ classdef SimpleGui <handle
             
             gui.graphSensors{1}=gui.ddg1.Value;
             gui.graphSensors{2}=gui.ddg2.Value;
-
+            
             axes(gui.graph2);
-            plot(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)));
+            cla;
+            gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)));
             gui.graph2.Title.String = 'Graph 2';
             
             axes(gui.graph);
-            plot(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)));
+            cla;
+            gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)));
             gui.graph.Title.String = 'Graph 1';
             
             drawnow limitrate;
