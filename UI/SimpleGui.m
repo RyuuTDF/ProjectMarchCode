@@ -74,6 +74,9 @@ classdef SimpleGui <handle
                 env = NetworkEnv();
             end
             
+            while isempty(env.currentData)
+                env = updateData(env);
+            end
             
             gui= SimpleGui(env.currentData,config);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,...
@@ -90,7 +93,7 @@ classdef SimpleGui <handle
                 allUpdate= config.allUpdateRate/config.updateFreq;
                 impUpdate= config.impUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1
+                    cnt = cnt+1;
                     env = updateData(env);
                     gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
                     
