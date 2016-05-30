@@ -196,6 +196,9 @@ classdef SimpleGui <handle
             % generates table and properties for the table which shows the
             % metadata of the important sensors
             gui.config
+            
+            %cellfun(@(x) config.typetable{x,1}, INDEXINPUT, 'UniformOutput', false)
+            
             gui.impSensorsLabel = uitable('Parent', gui.root,...
                 'Position', [25 divParams(4)+50 divParams(3)+25 divParams(4)-50],...
                 'Data',gui.data.datamatrix(gui.importantSensors,1:2),...
