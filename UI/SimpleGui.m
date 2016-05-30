@@ -88,12 +88,17 @@ classdef SimpleGui <handle
             % updates GUI when the checkbox is marked
             function updateC(hObject, eventdata, handles)
                 gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
+                if (get(hObject,'Value') == get(hObject,'Max'))
+                    tic;
+                else
+                    toc
+                end
                 cnt =0;
                 
                 allUpdate= config.allUpdateRate/config.updateFreq;
                 impUpdate= config.impUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1;
+                    cnt = cnt+1
                     env = updateData(env);
                     gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
                     
@@ -462,10 +467,11 @@ classdef SimpleGui <handle
             outlierIdx = gui.checkValues(data.returnColumn(3));
             
             % if a value is not in the defined range, mark the outlier
-%             if(size(outlierIdx,1) > 0)
-%                 gui.allSensors.Data = ...
-%                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
-%             end
+            outlierIdx = [];
+             if(size(outlierIdx,1) > 0)
+                 gui.allSensors.Data = ...
+                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
             gui.impSensorsData.Data = ...
@@ -556,7 +562,9 @@ classdef SimpleGui <handle
         % Function: updateDatabacklog
         % Functionality: saves the data in order to plot in on the graph
         function updateDatabacklog(gui, data)
-            newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
+%           newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
+            newdata = cell2mat(data.datamatrix(:,3));
+            
             gui.databacklog(:,gui.backlogPointer) = newdata;
             
             tail = gui.databacklog(:,gui.backlogPointer+1 : end);
@@ -591,9 +599,9 @@ classdef SimpleGui <handle
         % Function: scaleSI
         % Functionality: determines the best SI-prefix for all important sensors
         function scaleSI(gui)
-            sensorIds = gui.importantSensors
-            tableIds = [1:size(sensorIds,2)]
-           % arrayfun(@scaleEntry, tableIds,sensorIds);
+            sensorIds = gui.importantSensors;
+            tableIds = [1:size(sensorIds,2)];
+%            arrayfun(@scaleEntry, tableIds,sensorIds);
            
            % Function: scaleEntry
            % Functionality: determines the best SI-prefix for given sensors
