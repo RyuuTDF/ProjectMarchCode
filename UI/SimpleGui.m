@@ -164,7 +164,6 @@ classdef SimpleGui <handle
         % Function: SimpleGui
         % Functionality: constructor 
         function gui = SimpleGui(sensorData, config)
-            save('TestData4.mat','sensorData');
             gui.config = config;
             importantSensors = config.impSens;
             %r emoves all open figures for a clean slate
@@ -472,7 +471,7 @@ classdef SimpleGui <handle
             outlierIdx = gui.checkValues(data.returnColumn(3));
             
             % if a value is not in the defined range, mark the outlier
-            outlierIdx = [];
+            %outlierIdx = [];
              if(size(outlierIdx,1) > 0)
                  gui.allSensors.Data = ...
                      gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
@@ -517,8 +516,19 @@ classdef SimpleGui <handle
         % Functionality: loads the sensor properties from file
         function loadProperties(gui)
             load('Properties.mat');
+            if(isempty(sensProps))
+                sensProps = cell(size(gui.data.datamatrix,1),1);
+            end
+            sensProps
             gui.sensorProperties = sensProps;
             gui.syncProperties();
+        end
+        
+        % Function: resetProperties
+        % Funcionality: removes all sensor properties from file
+        function resetProperties(gui)
+           gui.sensorProperties = {};
+           gui.saveProperties();            
         end
         
         % Function: syncProperties
