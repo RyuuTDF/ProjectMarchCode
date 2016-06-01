@@ -22,14 +22,14 @@ classdef SimpleGui <handle
         % enumeration of relevant SI Prefixes and corresponding
         % transformations
         siPrefixes = {'G'    'M'    'k'    'h'    'da'...
-            'none'  'd'    'c'    'm'    'µ'    'n'}; 
+            'none'  'd'    'c'    'm'    'µ'    'n'};
         siTransformations = {@(x)x*10^9    @(x)x*10^6    @(x)x*10^3    ...
             @(x)x*10^2    @(x)x*10^1    @(x)x*10^0    @(x)x*10^-1 ...
             @(x)x*10^-2    @(x)x*10^-3 ...
             @(x)x*10^-6    @(x)x*10^-9};
         
         sensorSiTrans;% list of SiTransformations for each sensor
-
+        transIdx; %list of sensors with an non_f(x)=x transformation
         
         impSensorsLabel; % UItable which contains properties of the important sensors
         impSensorsData; % UItable which shows the data of the important sensors
@@ -47,7 +47,7 @@ classdef SimpleGui <handle
         root;% base figure of the simpleGUI
         
         
-        updateFlag = true; % is used to check of the data should be updates for testing purposes 
+        updateFlag = true; % is used to check of the data should be updates for testing purposes
         updateRate;% frequency of updates
         
         graphSensors ={[1 3], 2};%inital values of sensors shown in the graph
@@ -98,7 +98,7 @@ classdef SimpleGui <handle
                 allUpdate= config.allUpdateRate/config.updateFreq;
                 impUpdate= config.impUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1
+                    cnt = cnt+1;
                     env = updateData(env);
                     gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
                     
@@ -108,7 +108,7 @@ classdef SimpleGui <handle
         end
         
         % Function: concatUItab
-        % Functionality: generates a uitable with 'data' with the same properties 
+        % Functionality: generates a uitable with 'data' with the same properties
         % as the base table and has the right bottom corner of the base table as
         % left bottom corner
         function newTable = concatUItab(baseTable,data)
@@ -127,7 +127,7 @@ classdef SimpleGui <handle
         end
         
         % Function: resize
-        % Functionality: changes size related properties in 
+        % Functionality: changes size related properties in
         % the configuration file based on the size setting
         function config = resize(config)
             switch config.size
@@ -147,7 +147,7 @@ classdef SimpleGui <handle
         function html = colorgen(color,str)
             html = ['<html><table border=0 width=400 bgcolor=',color,...
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
-        end   
+        end
         
         % Function: plotLine
         % Functionality: draws a line as one would expect when using the
@@ -162,7 +162,7 @@ classdef SimpleGui <handle
     
     methods
         % Function: SimpleGui
-        % Functionality: constructor 
+        % Functionality: constructor
         function gui = SimpleGui(sensorData, config)
             gui.config = config;
             importantSensors = config.impSens;
@@ -248,7 +248,7 @@ classdef SimpleGui <handle
             gui.impSensCheck(gui.importantSensors) = true;
             gui.impSensCheck = num2cell(gui.impSensCheck);
             
-            % table which shows all sensors, starts hidden            
+            % table which shows all sensors, starts hidden
             gui.allSensors = uitable('Parent', gui.root, 'Position', ...
                 [divParams(3)+25 0 divParams(5) divParams(6) ],...
                 'Data',[gui.data.datamatrix(:,[1 3])],'RowName',[],...
@@ -274,14 +274,14 @@ classdef SimpleGui <handle
                 'RowName',[],'ColumnName', ...
                 {'Label','Prefix','Unit','Min','Max','Important'},...
                 'ColumnWidth',{75,50,50,50,50,50}...
-            );
+                );
             formulaField = uicontrol('Style','edit',...
                 'Position', [gui.propTable.Position(1:3) 50]...
                 ,'Callback',@editFormula...
-            )
+                );
             
             % Function: showProperties
-            % Functionality: callback function which show the properties 
+            % Functionality: callback function which show the properties
             % of a sensor when selected
             function showProperties(table, event)
                 
@@ -310,7 +310,7 @@ classdef SimpleGui <handle
             end
             
             % Function: editProp
-            % Functionality :callback function which saves the edited 
+            % Functionality :callback function which saves the edited
             % properties to the global list when a property is edited
             function editProp(table, event)
                 % gets the index of the property
@@ -340,14 +340,14 @@ classdef SimpleGui <handle
             end
             
             % Function: cellEditCallback
-            % Functionality: callback function for selecting another 
+            % Functionality: callback function for selecting another
             % SI-prefix to correctlyn transform the data
             function cellEditCallback(hTable, editEvent)
-                gui.transformSiData(editEvent.Indices(1),editEvent.NewData);             
+                gui.transformSiData(editEvent.Indices(1),editEvent.NewData);
             end
             
             % Function: toggleAll
-            % Functionality: function for toggeling the visibility 
+            % Functionality: function for toggeling the visibility
             % of the All Sensors table
             function toggleAll(hObject,eventData)
                 if(get(hObject,'Value') == get(hObject,'Max'))
@@ -362,7 +362,7 @@ classdef SimpleGui <handle
             % updates the important sensor window with the currently
             % selected important sensors
             function updateImpSens(idx, NewData)
-                %if NewData is true, add the selected sensor to the Imporant 
+                %if NewData is true, add the selected sensor to the Imporant
                 %Sensor list, else, remove the selceted sensor from the
                 %list
                 if(NewData)
@@ -385,8 +385,19 @@ classdef SimpleGui <handle
             % changed; applies the new formula to the relevant data
             function editFormula(control, event)
                 sensProps = gui.sensorProperties(gui.selectedSensor);
-                sensProps = sensProps{1};
+                sensProps = sensProps{1};   
                 sensProps.transformation = str2func(control.String);
+                
+                wasTrans = any(gui.transIdx(:)==gui.selectedSensor);
+                isTrans = ~strcmp(control.String,'@(x)x') ;
+                
+                if(wasTrans && ~isTrans)
+                    gui.transIdx(gui.transIdx == gui.selectedSensor) = [];
+                end
+                if(~wasTrans && isTrans)
+                    gui.transIdx = [gui.transIdx gui.selectedSensor];
+                end
+                    
                 gui.sensorProperties(gui.selectedSensor) = {sensProps};
                 gui.saveProperties();
                 gui.syncProperties();
@@ -425,15 +436,21 @@ classdef SimpleGui <handle
         function convData = convertData(gui, data,selection)
             convData = data;
             tabidxs =  1:size(data,1);
-            % Gets the indices of the sensors based on the table the data 
+            % Gets the indices of the sensors based on the table the data
             % is written to
             switch selection
                 case 'imp'
                     sensidxs = gui.importantSensors;
                 otherwise
                     sensidxs = 1:size(data,1);
+                    [transSensIdxs, transTabIdxs, x] = intersect(sensidxs, gui.transIdx);
+                    sensidxs = transSensIdxs;
+                    tabidxs = transpose(transTabIdxs);
             end
-            arrayfun(@convDataLine,sensidxs,tabidxs);
+            
+            
+            %arrayfun(@convDataLine,transSensIdxs,transpose(transTabIdxs));
+            arrayfun(@convDataLine,sensidxs,tabidxs )
             
             % Function: convDataLine
             % Functionality: transform data of sensor represented by
@@ -447,17 +464,17 @@ classdef SimpleGui <handle
                     if(isempty(siFn))
                         siFn= @(x)x;
                     end
-                        
+                    
                     fn = prop.transformation;
                     % Determines which part of the data should be
                     % transformed
                     switch selection
-                        case 'imp'
+                        case 'imp'                             
                             convData{tabIdx} = siFn(fn(data{tabIdx}));
                         case 'all'
                             convData{tabIdx,2} = fn(data{tabIdx,2});
                         case 'log'
-                            convData{sensIdx} = fn(data{sensIdx});                            
+                            convData{sensIdx} = fn(data{sensIdx});
                         otherwise
                     end
                 end
@@ -472,14 +489,14 @@ classdef SimpleGui <handle
             
             % if a value is not in the defined range, mark the outlier
             %outlierIdx = [];
-             if(size(outlierIdx,1) > 0)
-                 gui.allSensors.Data = ...
-                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
-             end
+            if(size(outlierIdx,1) > 0)
+                gui.allSensors.Data = ...
+                    gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+            end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
-            gui.impSensorsData.Data = ...
-                gui.convertData(data.datamatrix(gui.importantSensors,3),'imp');
+                gui.impSensorsData.Data = ...
+                    gui.convertData(data.datamatrix(gui.importantSensors,3),'imp');
             end
             % updates all sensordata if the flas is set to true
             if(updateAll)
@@ -509,7 +526,7 @@ classdef SimpleGui <handle
         % Functionality: saves the sensor properties to file
         function saveProperties(gui)
             sensProps = gui.sensorProperties;
-            save('Properties.mat', 'sensProps')
+            save('Properties.mat', 'sensProps');
         end
         
         % Function: loadProperties
@@ -519,16 +536,36 @@ classdef SimpleGui <handle
             if(isempty(sensProps))
                 sensProps = cell(size(gui.data.datamatrix,1),1);
             end
-            sensProps
             gui.sensorProperties = sensProps;
             gui.syncProperties();
+            gui.setTransIdx();
         end
         
+        % Function: setTransIdx
+        % Functionality: fills the transIdx list based on the sensor
+        % properties
+        
+        function setTransIdx(gui)
+            gui.transIdx = [];
+            sensidxs = 1:size(gui.sensorProperties,1);
+            
+            arrayfun(@checkSensTrans,sensidxs)
+            function checkSensTrans(sensIdx)
+                sens = gui.sensorProperties{sensIdx};
+                if(~isempty(sens))
+                    isTrans = ~strcmp(func2str(sens.transformation),'@(x)x');
+                    if(isTrans)
+                        gui.transIdx = [gui.transIdx sensIdx];
+                    end
+                end
+            end
+        end
+                       
         % Function: resetProperties
         % Funcionality: removes all sensor properties from file
         function resetProperties(gui)
-           gui.sensorProperties = {};
-           gui.saveProperties();            
+            gui.sensorProperties = {};
+            gui.saveProperties();
         end
         
         % Function: syncProperties
@@ -541,7 +578,7 @@ classdef SimpleGui <handle
             gui.scaleSI();
             
             % Function: syncSensor
-            % Functionality: checks if the SI-prefix of the sensor changed 
+            % Functionality: checks if the SI-prefix of the sensor changed
             function syncSensor(sensid, tabid)
                 sensorC = gui.sensorProperties{sensid};
                 if ( ~(isempty(sensorC)) & (isempty(sensorC.siOrgPrefix)) )
@@ -577,7 +614,7 @@ classdef SimpleGui <handle
         % Function: updateDatabacklog
         % Functionality: saves the data in order to plot in on the graph
         function updateDatabacklog(gui, data)
-%           newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
+            %           newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
             newdata = cell2mat(data.datamatrix(:,3));
             
             gui.databacklog(:,gui.backlogPointer) = newdata;
@@ -616,10 +653,10 @@ classdef SimpleGui <handle
         function scaleSI(gui)
             sensorIds = gui.importantSensors;
             tableIds = [1:size(sensorIds,2)];
-%            arrayfun(@scaleEntry, tableIds,sensorIds);
-           
-           % Function: scaleEntry
-           % Functionality: determines the best SI-prefix for given sensors
+            %            arrayfun(@scaleEntry, tableIds,sensorIds);
+            
+            % Function: scaleEntry
+            % Functionality: determines the best SI-prefix for given sensors
             function scaleEntry(tableIdx, sensIdx)
                 val = gui.impSensorsData.Data{tableIdx};
                 orgPrefix = gui.sensorProperties{sensIdx}.siOrgPrefix;
@@ -635,19 +672,19 @@ classdef SimpleGui <handle
                         siPrefix='k';
                         exp = 3;
                     case num2cell(6:8)
-                        siPrefix='M';  
+                        siPrefix='M';
                         exp = 6;
                     case num2cell(9:11)
                         siPrefix='G';
                         exp = 9;
                     case num2cell(-3:-1)
-                        siPrefix='m';   
+                        siPrefix='m';
                         exp = -3;
                     case num2cell(-6:-4)
-                        siPrefix='µ';   
+                        siPrefix='µ';
                         exp = -6;
                     case num2cell(-7:-10)
-                        siPrefix='n';   
+                        siPrefix='n';
                         exp = -9;
                     otherwise
                         siPrefix='none';
@@ -655,8 +692,8 @@ classdef SimpleGui <handle
                 end
                 val = val/ (10^exp);
                 
-                 gui.convTable.Data{tableIdx} = siPrefix;  
-                 gui.transformSiData(tableIdx,siPrefix);
+                gui.convTable.Data{tableIdx} = siPrefix;
+                gui.transformSiData(tableIdx,siPrefix);
             end
         end
     end
