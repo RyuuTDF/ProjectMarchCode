@@ -145,12 +145,15 @@ classdef SimpleGui <handle
                     config.figPos = config.figPosS;
                     config.font = config.fontS;
                     config.impTabWidth = config.impTabWidthS;
+                    config.naxes = 2;
                 case 'm'
                     config.figPos=config.figPosM;
                     config.font = config.fontM;
                     config.impTabWidth = config.impTabWidthM;
+                    config.naxes = 2;
                 case 'l'
                     config.figPos=config.figPosL;
+                    config.naxes = 4;
 %                     config.font = config.fontL;
 %                     config.impTabWidth = config.impTabWidthL;
             end
@@ -410,7 +413,6 @@ classdef SimpleGui <handle
         % Functionality: creates the graphs
         function generateGraphs(gui, naxes,divParams)
             
-            %naxes = naxes*2;
             gui.graph = axes('Units','pixels', 'Position', ...
                 [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
             gui.graph.Units = 'normalized';
@@ -420,14 +422,27 @@ classdef SimpleGui <handle
             gui.graph2.Units = 'normalized';
             gui.graph2.Title.String = 'Graph 2';
             
-            gui.graph3 = axes('Units','pixels', 'Position', ...
-                [25+(2*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25]);
-            gui.graph3.Units = 'normalized';
-            gui.graph3.Title.String = 'Graph 3';
-            gui.graph4 = axes('Units','pixels', 'Position', ...
-                [25+(3*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
-            gui.graph4.Units = 'normalized';
-            gui.graph4.Title.String = 'Graph 4';            
+            if(naxes >2)
+                gui.graph3 = axes('Units','pixels', 'Position', ...
+                    [25+(2*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25]);
+                gui.graph3.Units = 'normalized';
+                gui.graph3.Title.String = 'Graph 3';
+                gui.graph4 = axes('Units','pixels', 'Position', ...
+                    [25+(3*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
+                gui.graph4.Units = 'normalized';
+                gui.graph4.Title.String = 'Graph 4'; 
+                
+            gui.ddg3 = uicontrol('Style', 'listbox',...
+                'String', gui.sensorLabel,...
+                'Position', [25+(2*divParams(3)/naxes) divParams(4) 125 75],...
+                'Max',7 ...
+                );
+            gui.ddg4 = uicontrol('Style', 'listbox',...
+                'String', gui.sensorLabel,'Value',2,...
+                'Position', [25+(3*divParams(3)/naxes) divParams(4) 125 75]...
+                ,'Max', 7 ...
+                );
+            end
             
             gui.ddg1 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,...
@@ -437,16 +452,6 @@ classdef SimpleGui <handle
             gui.ddg2 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,'Value',2,...
                 'Position', [25+(divParams(3)/naxes) divParams(4) 125 75]...
-                ,'Max', 7 ...
-                );
-           gui.ddg3 = uicontrol('Style', 'listbox',...
-                'String', gui.sensorLabel,...
-                'Position', [25+(2*divParams(3)/naxes) divParams(4) 125 75],...
-                'Max',7 ...
-                );
-            gui.ddg4 = uicontrol('Style', 'listbox',...
-                'String', gui.sensorLabel,'Value',2,...
-                'Position', [25+(3*divParams(3)/naxes) divParams(4) 125 75]...
                 ,'Max', 7 ...
                 );
         end
@@ -531,15 +536,17 @@ classdef SimpleGui <handle
             if(updateGraph)
                 gui.graphSensors{1}=gui.ddg1.Value;
                 gui.graphSensors{2}=gui.ddg2.Value;
-                gui.graphSensors{3}=gui.ddg3.Value;
-                gui.graphSensors{4}=gui.ddg4.Value;
-                
 
                 gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)),gui.graph2,2);
                 gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)),gui.graph,1);
-                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{3},:)),gui.graph3,3);
-                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{4},:)),gui.graph4,4);
                 
+                if(gui.config.naxes >2)
+                    gui.graphSensors{3}=gui.ddg3.Value;
+                    gui.graphSensors{4}=gui.ddg4.Value;
+
+                    gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{3},:)),gui.graph3,3);
+                    gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{4},:)),gui.graph4,4);
+                end
             end
             
             drawnow limitrate;
@@ -547,7 +554,7 @@ classdef SimpleGui <handle
         
         % Function: saveProperties
         % Functionality: saves the sensor properties to file
-        function saveProperties(gui)
+        function saveProperties(gui)    
             sensProps = gui.sensorProperties;
             save('Properties.mat', 'sensProps');
         end
