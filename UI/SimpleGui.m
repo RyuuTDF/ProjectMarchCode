@@ -43,6 +43,8 @@ classdef SimpleGui <handle
         graph2;
         ddg1;
         ddg2;
+        line1;
+        line2;
         
         root;% base figure of the simpleGUI
         
@@ -97,11 +99,12 @@ classdef SimpleGui <handle
                 
                 allUpdate= config.allUpdateRate/config.updateFreq;
                 impUpdate= config.impUpdateRate/config.updateFreq;
+                graphUpdate = config.graphUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1;
+                    cnt = cnt+1
                     env = updateData(env);
-                    gui.update(env.currentData, mod(cnt,allUpdate) ==0,mod(cnt,impUpdate)==0);
-                    
+                    gui.update(env.currentData, mod(cnt,allUpdate) ==0,...
+                        mod(cnt,impUpdate)==0,mod(cnt,graphUpdate)==0);
                     pause(gui.updateRate);
                 end
             end
@@ -139,6 +142,10 @@ classdef SimpleGui <handle
                     config.figPos=config.figPosM;
                     config.font = config.fontM;
                     config.impTabWidth = config.impTabWidthM;
+                case 'l'
+                    config.figPos=config.figPosL;
+%                     config.font = config.fontL;
+%                     config.impTabWidth = config.impTabWidthL;
             end
         end
         
@@ -148,16 +155,6 @@ classdef SimpleGui <handle
             html = ['<html><table border=0 width=400 bgcolor=',color,...
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
         end
-        
-        % Function: plotLine
-        % Functionality: draws a line as one would expect when using the
-        % plot function, but without computational overhead
-        function plotLine(mat)
-            dims = size(mat);
-            idxs = (1:dims(1)).';
-            line(idxs,mat);
-        end
-        
     end
     
     methods
@@ -179,7 +176,7 @@ classdef SimpleGui <handle
                 gui.sensorProperties = cell(size(gui.data.datamatrix,1),1);
                 
                 % calls the figure object and defines some margins
-                gui.root = figure('Position',config.figPos , 'MenuBar', 'None');
+                gui.root = figure('Position',config.figPos , 'MenuBar', 'None','Resize','off');
                 divParams =[
                     gui.root.Position(1)+(gui.root.Position(3)*0.8)
                     gui.root.Position(2)+(gui.root.Position(4)*0.5)
@@ -202,9 +199,7 @@ classdef SimpleGui <handle
                 gui.generateTables(divParams);
                 gui.loadProperties();
             end
-        end
-        
-        
+        end        
         % Function: generateTable
         % Functionality: creates tables used to show data
         function generateTables(gui,divParams)
@@ -272,7 +267,7 @@ classdef SimpleGui <handle
                 ,'CellEditCallback',@editProp, 'ColumnFormat',...
                 {'char',gui.siPrefixes,'char','numeric','numeric','logical'},...
                 'RowName',[],'ColumnName', ...
-                {'Label','Prefix','Unit','Min','Max','Important'},...
+                {'Label','Prefix','Unit','Max','Min','Important'},...
                 'ColumnWidth',{75,50,50,50,50,50}...
                 );
             formulaField = uicontrol('Style','edit',...
@@ -483,12 +478,12 @@ classdef SimpleGui <handle
         
         % Function: update
         % Functionality: updates the sensor tables and graphs in the GUI
-        function update(gui,data, updateAll,updateImp)
+        function update(gui,data, updateAll,updateImp,updateGraph)
             % checks if all sensor data is in the defined range
             outlierIdx = gui.checkValues(data.returnColumn(3));
             
             % if a value is not in the defined range, mark the outlier
-            %outlierIdx = [];
+            outlierIdx = [];
             if(size(outlierIdx,1) > 0)
                 gui.allSensors.Data = ...
                     gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
@@ -505,19 +500,18 @@ classdef SimpleGui <handle
             
             % updates the graphs
             gui.updateDatabacklog(data);
+            gui.updateSlidingWindow();
             
-            gui.graphSensors{1}=gui.ddg1.Value;
-            gui.graphSensors{2}=gui.ddg2.Value;
-            
-            axes(gui.graph2);
-            cla;
-            gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)));
-            gui.graph2.Title.String = 'Graph 2';
-            
-            axes(gui.graph);
-            cla;
-            gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)));
-            gui.graph.Title.String = 'Graph 1';
+            if(updateGraph)
+                gui.graphSensors{1}=gui.ddg1.Value;
+                gui.graphSensors{2}=gui.ddg2.Value;
+
+                %cla(gui.graph2);
+                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)),gui.graph2,2);
+
+                %cla(gui.graph);
+                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)),gui.graph,1);
+            end
             
             drawnow limitrate;
         end
@@ -612,18 +606,41 @@ classdef SimpleGui <handle
         end
         
         % Function: updateDatabacklog
-        % Functionality: saves the data in order to plot in on the graph
+        % Functionality: saves the data in a ring buffer in order to
+        % plot in on the graph
         function updateDatabacklog(gui, data)
             %           newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
             newdata = cell2mat(data.datamatrix(:,3));
             
             gui.databacklog(:,gui.backlogPointer) = newdata;
             
+            gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
+        end
+        
+        % Function: updateSlidingWindow
+        % Functionality: creates an ordered array out of the ring buffer        
+        function updateSlidingWindow(gui)
             tail = gui.databacklog(:,gui.backlogPointer+1 : end);
             head = gui.databacklog(:,1 : gui.backlogPointer);
             
             gui.dataSlidingWindow = [tail head];
-            gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
+        end
+        
+        % Function: plotLine
+        % Functionality: draws a line as one would expect when using the
+        % plot function, but without computational overhead
+        function plotLine(gui,mat,ax,id)
+            dims = size(mat);
+            idxs = (1:dims(1)).';
+            switch id
+                case 1
+                    delete(gui.line1);
+                    gui.line1 = line(idxs,mat, 'Parent',ax);
+                case 2
+                    delete(gui.line2);                    
+                    gui.line2 = line(idxs,mat, 'Parent',ax);
+                otherwise
+            end
         end
         
         % Function: transformSiData
@@ -647,6 +664,15 @@ classdef SimpleGui <handle
             
             gui.sensorSiTrans{sensorIdx} = convfn;
         end
+        
+        % Function: aggregateData
+        % Functionality: returns an array with the averages of the last 'n'
+        % sensor values received by the system
+        function out = aggregateData(gui, n)
+            baseData = gui.dataSlidingWindow(:,end-n:end);
+            out = mean(baseData,2);
+        end
+        
         
         % Function: scaleSI
         % Functionality: determines the best SI-prefix for all important sensors
