@@ -46,13 +46,20 @@ classdef SimpleGui <handle
         line1;
         line2;
         
+        graph3;
+        graph4;
+        ddg3;
+        ddg4;
+        line3;
+        line4;
+        
         root;% base figure of the simpleGUI
         
         
         updateFlag = true; % is used to check of the data should be updates for testing purposes
         updateRate;% frequency of updates
         
-        graphSensors ={[1 3], 2};%inital values of sensors shown in the graph
+        graphSensors ={[1 3], 2,3,4};%inital values of sensors shown in the graph
         
         % stores the old data used in the graph and constructs a sliding window
         % to show the data in the right order
@@ -248,7 +255,7 @@ classdef SimpleGui <handle
                 [divParams(3)+25 0 divParams(5) divParams(6) ],...
                 'Data',[gui.data.datamatrix(:,[1 3])],'RowName',[],...
                 'ColumnName',[],'BackgroundColor', [0.9 0.9 1 ],...
-                'ColumnWidth', {100,50}, 'Visible','off',...
+                'ColumnWidth', {100,75}, 'Visible','off',...
                 'CellSelectionCallback',@showProperties...
                 ,'ColumnFormat', {'char','numeric','logical'},...
                 'ColumnEditable',[false false true] ...
@@ -403,6 +410,7 @@ classdef SimpleGui <handle
         % Functionality: creates the graphs
         function generateGraphs(gui, naxes,divParams)
             
+            %naxes = naxes*2;
             gui.graph = axes('Units','pixels', 'Position', ...
                 [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
             gui.graph.Units = 'normalized';
@@ -412,6 +420,14 @@ classdef SimpleGui <handle
             gui.graph2.Units = 'normalized';
             gui.graph2.Title.String = 'Graph 2';
             
+            gui.graph3 = axes('Units','pixels', 'Position', ...
+                [25+(2*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25]);
+            gui.graph3.Units = 'normalized';
+            gui.graph3.Title.String = 'Graph 3';
+            gui.graph4 = axes('Units','pixels', 'Position', ...
+                [25+(3*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
+            gui.graph4.Units = 'normalized';
+            gui.graph4.Title.String = 'Graph 4';            
             
             gui.ddg1 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,...
@@ -421,6 +437,16 @@ classdef SimpleGui <handle
             gui.ddg2 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,'Value',2,...
                 'Position', [25+(divParams(3)/naxes) divParams(4) 125 75]...
+                ,'Max', 7 ...
+                );
+           gui.ddg3 = uicontrol('Style', 'listbox',...
+                'String', gui.sensorLabel,...
+                'Position', [25+(2*divParams(3)/naxes) divParams(4) 125 75],...
+                'Max',7 ...
+                );
+            gui.ddg4 = uicontrol('Style', 'listbox',...
+                'String', gui.sensorLabel,'Value',2,...
+                'Position', [25+(3*divParams(3)/naxes) divParams(4) 125 75]...
                 ,'Max', 7 ...
                 );
         end
@@ -505,12 +531,15 @@ classdef SimpleGui <handle
             if(updateGraph)
                 gui.graphSensors{1}=gui.ddg1.Value;
                 gui.graphSensors{2}=gui.ddg2.Value;
+                gui.graphSensors{3}=gui.ddg3.Value;
+                gui.graphSensors{4}=gui.ddg4.Value;
+                
 
-                %cla(gui.graph2);
                 gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{2},:)),gui.graph2,2);
-
-                %cla(gui.graph);
                 gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{1},:)),gui.graph,1);
+                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{3},:)),gui.graph3,3);
+                gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{4},:)),gui.graph4,4);
+                
             end
             
             drawnow limitrate;
@@ -639,6 +668,12 @@ classdef SimpleGui <handle
                 case 2
                     delete(gui.line2);                    
                     gui.line2 = line(idxs,mat, 'Parent',ax);
+                case 3
+                    delete(gui.line3);
+                    gui.line3 = line(idxs,mat, 'Parent',ax);
+                case 4
+                    delete(gui.line4);                    
+                    gui.line4 = line(idxs,mat, 'Parent',ax);                    
                 otherwise
             end
         end
