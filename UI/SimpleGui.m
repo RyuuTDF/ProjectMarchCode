@@ -12,6 +12,7 @@ classdef SimpleGui <handle
         sensorTabel = {};% list of inital data of all sensors
         sensorMin = [];% array of all sensor minima
         sensorMax = [];% array of all sensor maxima
+        sensorOutlier = []; %array of sensors which have had an outlying value
         
         importantSensors = [];% array of all important sensors
         impSensCheck; % boolean representation of important sensors
@@ -515,9 +516,9 @@ classdef SimpleGui <handle
             
             % if a value is not in the defined range, mark the outlier
             outlierIdx = [];
-            if(size(outlierIdx,1) > 0)
+            if(size(gui.sensorOutlier,1) > 0)
                 gui.allSensors.Data = ...
-                    gui.markoutliers(outlierIdx,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+                    gui.markoutliers(gui.sensorOutlier,gui.convertData(data.datamatrix(:,[1 3]),'all'));
             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
@@ -629,6 +630,7 @@ classdef SimpleGui <handle
             mincm = gui.sensorMin < datarr;
             maxcm = gui.sensorMax > datarr;
             exIdx = find(mincm | maxcm);
+            gui.sensorOutlier = union(gui.sensorOutlier,exIdx);
         end
         
         % Function: markoutliers
