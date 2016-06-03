@@ -8,7 +8,12 @@ classdef LocalEnv < Env
             if nargin == 0
                 obj.currentData = {};
             else
-                obj.currentData = SensorDataContainer(SensorDataContainer.convertLocalData(importdata(filename),6));
+                data = importdata(filename);
+                if(isa(data,'SensorDataContainer'))
+                    obj.currentData = data;
+                else
+                    obj.currentData = SensorDataContainer(SensorDataContainer.convertLocalData(data,6));
+                end
             end
         end
         
