@@ -42,7 +42,7 @@ function setup(block)
     %Setup the input port.
     block.InputPort(1).DatatypeID  = -1;  % inherit from EtherCAT block
     block.InputPort(1).Complexity  = 'Real'; %real
-    block.InputPort(1).Dimensions = 1;
+    block.InputPort(1).ouDimensions = 1;
 
     %Setup the output port.
     block.OutputPort(1).DatatypeID  = 3; % serialized uint8 array
