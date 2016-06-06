@@ -24,10 +24,10 @@ classdef SimpleGui <handle
         % transformations
         siPrefixes = {'G'    'M'    'k'    'h'    'da'...
             'none'  'd'    'c'    'm'    'µ'    'n'};
-        siTransformations = {@(x)x*10^9    @(x)x*10^6    @(x)x*10^3    ...
-            @(x)x*10^2    @(x)x*10^1    @(x)x*10^0    @(x)x*10^-1 ...
-            @(x)x*10^-2    @(x)x*10^-3 ...
-            @(x)x*10^-6    @(x)x*10^-9};
+        siTransformations = {@(x)x*10^-9    @(x)x*10^-6    @(x)x*10^-3    ...
+            @(x)x*10^-2    @(x)x*10^-1    @(x)x*10^0    @(x)x*10^1 ...
+            @(x)x*10^2    @(x)x*10^3 ...
+            @(x)x*10^6    @(x)x*10^9};
         
         sensorSiTrans;% list of SiTransformations for each sensor
         transIdx; %list of sensors with an non_f(x)=x transformation
@@ -58,7 +58,10 @@ classdef SimpleGui <handle
         
         
         updateFlag = true; % is used to check of the data should be updates for testing purposes
-        updateRate;% frequency of updates
+        updateRate;%base frequency of updates
+        graphRate;
+        impRate;
+        allRate;
         
         graphSensors ={[1 3], 2,3,4};%inital values of sensors shown in the graph
         
@@ -91,7 +94,6 @@ classdef SimpleGui <handle
             gui= SimpleGui(env.currentData,config);
             updateCheck = uicontrol('Style','checkbox','Callback',@updateC,...
                 'Position',[0,650,25,25]);
-            gui.updateRate = config.updateFreq;
             
             % Function: updateC
             % Functionality: callback function for the update checkbox
@@ -104,16 +106,24 @@ classdef SimpleGui <handle
                     toc
                 end
                 cnt =0;
+                u = 0;
+                w = 0;
                 
-                allUpdate= config.allUpdateRate/config.updateFreq;
-                impUpdate= config.impUpdateRate/config.updateFreq;
-                graphUpdate = config.graphUpdateRate/config.updateFreq;
                 while gui.updateFlag;
-                    cnt = cnt+1
+                    allUpdate= gui.allRate/gui.updateRate;
+                    impUpdate= gui.impRate/gui.updateRate;
+                    graphUpdate = gui.graphRate/gui.updateRate;
+
+                    cnt = cnt+1;    
+                    currUpdateRate = cnt/toc;
                     env = updateData(env);
-                    gui.update(env.currentData, mod(cnt,allUpdate) ==0,...
+                    
+                    if(env.hasNewData)
+                        gui.update(env.currentData, mod(cnt,allUpdate) ==0,...
                         mod(cnt,impUpdate)==0,mod(cnt,graphUpdate)==0);
-                    pause(gui.updateRate);
+                    else
+                        pause(gui.updateRate);
+                    end
                 end
             end
         end
@@ -186,6 +196,12 @@ classdef SimpleGui <handle
                 gui.importantSensors = importantSensors;
                 gui.sensorProperties = cell(size(gui.data.datamatrix,1),1);
                 
+                gui.updateRate = config.updateFreq;
+                gui.graphRate = config.graphUpdateRate;
+                gui.impRate = config.impUpdateRate;
+                gui.allRate = config.allUpdateRate;
+                
+                
                 % calls the figure object and defines some margins
                 gui.root = figure('Position',config.figPos , 'MenuBar', 'None','Resize','off');
                 divParams =[
@@ -235,7 +251,7 @@ classdef SimpleGui <handle
             gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
                 gui.data.datamatrix(gui.importantSensors,3));
             gui.impSensorsData.ColumnFormat = {'shortG'};
-            gui.impSensorsData.ColumnWidth = {100};
+            gui.impSensorsData.ColumnWidth = {150};
             gui.impSensorsData.ColumnName = {'Value'};
             gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);
             
@@ -274,7 +290,7 @@ classdef SimpleGui <handle
             %sensor
             gui.propTable = uitable('Parent',gui.root, 'Position', ...
                 [gui.convTable.Position(1)+ gui.convTable.Position(3)+25,...
-                gui.convTable.Position(2)+25, 350, 200],'ColumnEditable', true...
+                gui.convTable.Position(2), 350, 200],'ColumnEditable', true...
                 ,'CellEditCallback',@editProp, 'ColumnFormat',...
                 {'char',gui.siPrefixes,'char','numeric','numeric','logical'},...
                 'RowName',[],'ColumnName', ...
@@ -285,6 +301,15 @@ classdef SimpleGui <handle
                 'Position', [gui.propTable.Position(1:3) 50]...
                 ,'Callback',@editFormula...
                 );
+            
+            % table for controlling the update speed of certain components
+                updateChangeTable = uitable('Parent',gui.root, 'Position',...
+                [gui.propTable.Position(1), sum(gui.propTable.Position([2 4])),...
+                350 , 75], 'ColumnEditable', true, 'RowName',[],'ColumnName',...
+                {'Base','Graphs','All','Import'},'ColumnFormat',{'numeric'},'ColumnWidth',{75 75,75,75}...
+                ,'CellEditCallback',@changeUpdateFreq...
+            );
+            updateChangeTable.Data = {gui.updateRate, gui.graphRate, gui.allRate, gui.impRate}
             
             % Function: showProperties
             % Functionality: callback function which show the properties
@@ -408,12 +433,35 @@ classdef SimpleGui <handle
                 gui.saveProperties();
                 gui.syncProperties();
             end
+            
+            % Function: changeUpdateFreq
+            % Functionality: changes update frequency of the visual
+            % elements
+            function changeUpdateFreq(control, event)
+                control
+                event
+                switch event.Indices(2) 
+                    case 1
+                        gui.updateRate = event.NewData;
+                    case 2
+                        gui.graphRate = event.NewData;                        
+                    case 3                        
+                        gui.allRate = event.NewData;
+                    case 4                        
+                        gui.impRate = event.NewData;  
+                end
+            end
+            
         end
         
         % Function: generateGraphs
         % Functionality: creates the graphs
         function generateGraphs(gui, naxes,divParams)
             
+            if(naxes >2) 
+               divParams(3) = divParams(3)+25;
+               divParams(4)= divParams(4)-25; 
+            end
             gui.graph = axes('Units','pixels', 'Position', ...
                 [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
             gui.graph.Units = 'normalized';
@@ -475,9 +523,9 @@ classdef SimpleGui <handle
                     tabidxs = transpose(transTabIdxs);
             end
             
-            
-            %arrayfun(@convDataLine,transSensIdxs,transpose(transTabIdxs));
-            arrayfun(@convDataLine,sensidxs,tabidxs )
+            if(~isempty(sensidxs))    
+                arrayfun(@convDataLine,sensidxs,tabidxs )
+            end
             
             % Function: convDataLine
             % Functionality: transform data of sensor represented by
@@ -515,11 +563,10 @@ classdef SimpleGui <handle
             outlierIdx = gui.checkValues(data.returnColumn(3));
             
             % if a value is not in the defined range, mark the outlier
-            outlierIdx = [];
-            if(size(gui.sensorOutlier,1) > 0)
-                gui.allSensors.Data = ...
-                    gui.markoutliers(gui.sensorOutlier,gui.convertData(data.datamatrix(:,[1 3]),'all'));
-            end
+%             if(size(gui.sensorOutlier,1) > 0)
+%                 gui.allSensors.Data = ...
+%                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+%             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
                 gui.impSensorsData.Data = ...
@@ -532,9 +579,9 @@ classdef SimpleGui <handle
             
             % updates the graphs
             gui.updateDatabacklog(data);
-            gui.updateSlidingWindow();
             
             if(updateGraph)
+                gui.updateSlidingWindow();
                 gui.graphSensors{1}=gui.ddg1.Value;
                 gui.graphSensors{2}=gui.ddg2.Value;
 
@@ -723,7 +770,8 @@ classdef SimpleGui <handle
         function scaleSI(gui)
             sensorIds = gui.importantSensors;
             tableIds = [1:size(sensorIds,2)];
-            %            arrayfun(@scaleEntry, tableIds,sensorIds);
+            %arrayfun(@scaleEntry, tableIds,sensorIds);
+            scaleEntry(4,4);
             
             % Function: scaleEntry
             % Functionality: determines the best SI-prefix for given sensors
@@ -759,10 +807,9 @@ classdef SimpleGui <handle
                     otherwise
                         siPrefix='none';
                         exp = 0;
-                end
-                val = val/ (10^exp);
-                
+                end                
                 gui.convTable.Data{tableIdx} = siPrefix;
+
                 gui.transformSiData(tableIdx,siPrefix);
             end
         end
