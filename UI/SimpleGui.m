@@ -106,8 +106,6 @@ classdef SimpleGui <handle
                     toc
                 end
                 cnt =0;
-                u = 0;
-                w = 0;
                 
                 while gui.updateFlag;
                     allUpdate= gui.allRate/gui.updateRate;
@@ -224,7 +222,7 @@ classdef SimpleGui <handle
                 % generates other graphic items
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
-                gui.loadProperties();
+                gui.loadProperties();       
             end
         end        
         % Function: generateTable
@@ -651,7 +649,9 @@ classdef SimpleGui <handle
         function syncProperties(gui)
             idxs =  [1:size(gui.importantSensors,2)];
             tmpCondata = gui.convTable.Data;
-            arrayfun(@syncSensor, gui.importantSensors,idxs);
+            if(~isempty(gui.importantSensors))
+                arrayfun(@syncSensor, gui.importantSensors,idxs);
+            end
             gui.convTable.Data = tmpCondata;
             gui.scaleSI();
             
@@ -770,9 +770,9 @@ classdef SimpleGui <handle
         function scaleSI(gui)
             sensorIds = gui.importantSensors;
             tableIds = [1:size(sensorIds,2)];
-            %arrayfun(@scaleEntry, tableIds,sensorIds);
-            scaleEntry(4,4);
-            
+            if(~isempty(sensorIds))
+            arrayfun(@scaleEntry, tableIds,sensorIds);
+            end
             % Function: scaleEntry
             % Functionality: determines the best SI-prefix for given sensors
             function scaleEntry(tableIdx, sensIdx)
