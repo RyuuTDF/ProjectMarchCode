@@ -7,7 +7,8 @@ classdef Env
         referenceData
         referenceChecksum
         lastDeltaChecksum
-        simulationTime        
+        simulationTime 
+        hasNewData
     end
 
 	methods

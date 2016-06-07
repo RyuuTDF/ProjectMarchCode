@@ -27,11 +27,12 @@ classdef NetworkEnv < Env
         % Functionality: Update the relevant data if a new packet has arrived.
         function obj = updateData(obj)
             packet = step(obj.receiver);
-            
+            obj.hasNewData = false;            
             if ~isempty(packet)
                 % Check the footer for packet type.
                 % 1 = reference packet
                 % 2 = delta packet
+                obj.hasNewData = true;
                 packetType = packet(end);
                 if packetType == 1
                     %Testing Purposes
@@ -48,6 +49,7 @@ classdef NetworkEnv < Env
                     error('Invalid Packet Type');
                 end
             end
+                       
         end
 
         
@@ -82,6 +84,7 @@ classdef NetworkEnv < Env
                     obj.lastDeltaChecksum = packetChecksum;
                 
                     packetData = packetData(2:end);
+                    obj.hasNewData = true;
                     obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
                 end
                 
