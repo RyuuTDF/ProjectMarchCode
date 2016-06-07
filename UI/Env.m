@@ -9,6 +9,7 @@ classdef Env
         lastDeltaChecksum
         simulationTime 
         hasNewData
+        signalproperties
     end
 
 	methods
