@@ -26,6 +26,10 @@ classdef NetworkEnv < Env
             obj.signalproperties(:,:) = SignalProperties((2:end),:);
 
             obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
+            
+            %Check if all identifiers are unique.
+            identifiers = obj.signalproperties.Identifier;
+            assert(length(unique(identifiers)) == length(identifiers));
        end
         
         
