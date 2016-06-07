@@ -20,7 +20,17 @@ classdef NetworkEnv < Env
             obj.lastDeltaChecksum = 0;
             obj.simulationTime = 0;
             
-        end
+            load('SignalProperties.mat');
+
+            obj.signalproperties = table();
+            obj.signalproperties(:,:) = SignalProperties((2:end),:);
+
+            obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
+            
+            %Check if all identifiers are unique.
+            identifiers = obj.signalproperties.Identifier;
+            assert(length(unique(identifiers)) == length(identifiers));
+       end
         
         
         % Function: updateData
@@ -85,7 +95,9 @@ classdef NetworkEnv < Env
                 
                     packetData = packetData(2:end);
                     obj.hasNewData = true;
-                    obj.currentData = SensorDataContainer(SensorDataContainer.convertNetworkData(packetData,5));
+                    packetData = transpose(reshape(packetData,2,[]));
+                    packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
+                    obj.currentData = join(obj.signalproperties,packetTable);
                 end
                 
             else
