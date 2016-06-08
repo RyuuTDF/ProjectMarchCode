@@ -128,7 +128,7 @@ classdef SimpleGui <handle
             end
             
             recbox = uicontrol('Style','checkbox','Callback',@toggleRecording,...
-                'Position',[divParams(3)-350 divParams(6)-100 150 25],...
+                'Position',[(gui.root.Position(3)*0.8)-350 600 150 25],...
                 'String','Toggle Recording'...
                 );
             % Function: updateC
@@ -250,7 +250,6 @@ classdef SimpleGui <handle
                 gui.loadProperties();
             end   
         end
-        
 
         % Function: generateTable
         % Functionality: creates tables used to show data
@@ -336,7 +335,7 @@ classdef SimpleGui <handle
                 {'Base','Graphs','All','Import'},'ColumnFormat',{'numeric'},'ColumnWidth',{75 75,75,75}...
                 ,'CellEditCallback',@changeUpdateFreq...
             );
-            updateChangeTable.Data = {gui.updateRate, gui.graphRate, gui.allRate, gui.impRate}
+            updateChangeTable.Data = {gui.updateRate, gui.graphRate, gui.allRate, gui.impRate};
             
             % Function: showProperties
             % Functionality: callback function which show the properties
