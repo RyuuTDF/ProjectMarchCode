@@ -126,7 +126,29 @@ classdef SimpleGui <handle
                     end
                 end
             end
+            
+            recbox = uicontrol('Style','checkbox','Callback',@toggleRecording,...
+                'Position',[divParams(3)-350 divParams(6)-100 150 25],...
+                'String','Toggle Recording'...
+                );
+            % Function: updateC
+            % Functionality: callback function for the update checkbox
+            % updates GUI when the checkbox is marked            
+            function toggleRecording(hObject, eventdata, handles)
+                record = get(hObject,'Value') == get(hObject,'Max');
+                if(~strcmp(config.env,'local'))
+                    if(record)
+                        %start recording
+                        env.startRecording();
+                    else
+                        %end recording
+                        env.stopRecording();
+                    end
+                end
+            end
         end
+        
+        
         
         % Function: concatUItab
         % Functionality: generates a uitable with 'data' with the same properties
@@ -226,22 +248,8 @@ classdef SimpleGui <handle
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
                 gui.loadProperties();
-                recbox = uicontrol('Style','checkbox','Callback',@toggleRecording,...
-                'Position',[divParams(3)-350 divParams(6)-100 150 25],...
-                'String','Toggle Recording'...
-                );
-            end
-            function toggleRecording(hObject, eventdata, handles)
-                record = get(hObject,'Value') == get(hObject,'Max');
-                if(record)
-                    %start recording
-                    
-                else
-                    %end recording
-                end
-            end
-
-        end        
+            end   
+        end
         
 
         % Function: generateTable
@@ -837,3 +845,4 @@ classdef SimpleGui <handle
     end
 end
 
+    
