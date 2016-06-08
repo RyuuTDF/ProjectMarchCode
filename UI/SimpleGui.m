@@ -184,16 +184,16 @@ classdef SimpleGui <handle
             importantSensors = config.impSens;
             %r emoves all open figures for a clean slate
             close all;
-            gui.data=sensorData
             if(nargin >0)
                 % sets the data properties
                 gui.data=sensorData;
-                gui.sensorLabel = sensorData(:,'Label');
-                gui.sensorTabel = sensorData(:,'Value' );
-                gui.sensorMin = sensorData(:,'Minimum');
-                gui.sensorMax = sensorData(:,'Maximum');
+                sensorData.datamatrix
+                gui.sensorLabel = sensorData.returnColumn(1);
+                gui.sensorTabel = sensorData.returnColumn(2);
+                gui.sensorMin = cell2mat(sensorData.returnColumn(3));
+                gui.sensorMax = cell2mat(sensorData.returnColumn(4));
                 gui.importantSensors = importantSensors;
-                gui.sensorProperties = cell(size(gui.data,1),1);
+                gui.sensorProperties = cell(size(gui.data.datamatrix,1),1);
                 
                 gui.updateRate = config.updateFreq;
                 gui.graphRate = config.graphUpdateRate;
@@ -211,14 +211,14 @@ classdef SimpleGui <handle
                     gui.root.Position(3)*0.2
                     gui.root.Position(4)
                     ];
-                gui.sensorSiTrans = cell(size(gui.data,1),1);
+                gui.sensorSiTrans = cell(size(gui.data.datamatrix,1),1);
                 
                 % defines the amount of axes in the figure
                 naxes = config.naxes;
                 gui.backlogSize=config.backlogSize;
                 % used to save the incoming data
-                gui.databacklog = zeros(size(gui.data,1),gui.backlogSize);
-                gui.dataSlidingWindow = zeros(size(gui.data,1),gui.backlogSize);
+                gui.databacklog = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
+                gui.dataSlidingWindow = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
                 gui.backlogPointer = 1;
                 % generates other graphic items
                 gui.generateGraphs(naxes,divParams);
@@ -232,7 +232,7 @@ classdef SimpleGui <handle
             % generates table and properties for the table which shows the
             % metadata of the important sensors
             
-            sensorLabels = cell2mat(gui.data(:,'Label'));
+            sensorLabels = cell2mat(gui.data.datamatrix(:,2));
             gui.data.datamatrix(:,2) = gui.config.typetable(sensorLabels);
             
             gui.impSensorsLabel = uitable('Parent', gui.root,...
