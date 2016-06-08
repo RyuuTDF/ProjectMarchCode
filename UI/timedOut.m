@@ -1,7 +1,8 @@
 % Function: timedOut
 % Functionality: Resend request for new reference packet.
 function timedOut(~, ~, obj)
-	step(obj.sender, obj.lastDeltaChecksum);
+    requestData = [uint16(1); obj.lastDeltaChecksum];
+    step(obj.sender, requestData);
 	
     %Testing Purposes
     fprintf('TIMEOUT!\n');

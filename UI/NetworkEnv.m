@@ -5,6 +5,7 @@ classdef NetworkEnv < Env
 	properties
         sender
         receiver
+        recording
     end
 
 	methods
@@ -19,6 +20,7 @@ classdef NetworkEnv < Env
             obj.referenceChecksum = 0;
             obj.lastDeltaChecksum = 0;
             obj.simulationTime = 0;
+            obj.recording = 0;
             
             load('SignalProperties.mat');
 
@@ -110,7 +112,8 @@ classdef NetworkEnv < Env
         % Function: requestNewReference
         % Functionality: Request a new reference packet if checksums don't match.   
         function obj = requestNewReference(obj)
-            step(obj.sender, obj.lastDeltaChecksum);
+            sendData = [uint16(1); obj.lastDeltaChecksum];
+            step(obj.sender, sendData);
             
             %Start the timer in case the referencepacket gets dropped.
             t=timer();
@@ -124,6 +127,7 @@ classdef NetworkEnv < Env
             
             while ~newReference
                 packet = step(obj.receiver);
+                
                    
                 if ~isempty(packet)
                     % Check if the packet is the reference packet.
@@ -150,7 +154,21 @@ classdef NetworkEnv < Env
                 end
             end
         end
-       
-	end
+        
+        function obj = startRecording(obj)
+            t = datetime('now');
+            sendData = [uint16(2); uint32(posixtime(t))];
+            step(obj.sender, sendData);
+            
+            obj.recording = 1;
+        end
+        
+        function obj = stopRecording(obj)
+            sendData = uint16(3);
+            step(obj.sender, sendData);
+            
+            obj.recording = 0;
+        end
+    end
 end
 
