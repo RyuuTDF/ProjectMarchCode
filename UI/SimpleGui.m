@@ -108,9 +108,9 @@ classdef SimpleGui <handle
                 cnt =0;
                 
                 while gui.updateFlag;
-                    allUpdate= gui.allRate/gui.updateRate;
-                    impUpdate= gui.impRate/gui.updateRate;
-                    graphUpdate = gui.graphRate/gui.updateRate;
+                    allUpdate= gui.updateRate;
+                    impUpdate= gui.updateRate;
+                    graphUpdate = gui.updateRate;
 
                     cnt = cnt+1;    
                     currUpdateRate = cnt/toc;
@@ -187,6 +187,7 @@ classdef SimpleGui <handle
             if(nargin >0)
                 % sets the data properties
                 gui.data=sensorData;
+                sensorData.datamatrix
                 gui.sensorLabel = sensorData.returnColumn(1);
                 gui.sensorTabel = sensorData.returnColumn(2);
                 gui.sensorMin = cell2mat(sensorData.returnColumn(3));

@@ -97,7 +97,7 @@ classdef NetworkEnv < Env
                     obj.hasNewData = true;
                     packetData = transpose(reshape(packetData,2,[]));
                     packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
-                    obj.currentData = join(obj.signalproperties,packetTable);
+                    obj.currentData = table2cell(join(obj.signalproperties,packetTable));
                 end
                 
             else
