@@ -211,14 +211,13 @@ classdef SimpleGui <handle
             if(nargin >0)
                 % sets the data properties
                 gui.data=sensorData;
-                sensorData.datamatrix
-                gui.sensorLabel = sensorData.returnColumn(1);
-                gui.sensorTabel = sensorData.returnColumn(2);
-                gui.sensorMin = cell2mat(sensorData.returnColumn(3));
-                gui.sensorMax = cell2mat(sensorData.returnColumn(4));
+                gui.sensorLabel = sensorData(:,1);
+                gui.sensorTabel = sensorData(:,2);
+                gui.sensorMin = cell2mat(sensorData(:,3));
+                gui.sensorMax = cell2mat(sensorData(:,4));
                 gui.importantSensors = importantSensors;
-                gui.sensorProperties = cell(size(gui.data.datamatrix,1),1);
-                
+                gui.sensorProperties = cell(size(gui.data,1),1);
+                gui.sensorProperties
                 gui.updateRate = config.updateFreq;
                 gui.graphRate = config.graphUpdateRate;
                 gui.impRate = config.impUpdateRate;
@@ -235,14 +234,14 @@ classdef SimpleGui <handle
                     gui.root.Position(3)*0.2
                     gui.root.Position(4)
                     ];
-                gui.sensorSiTrans = cell(size(gui.data.datamatrix,1),1);
+                gui.sensorSiTrans = cell(size(gui.data,1),1);
                 
                 % defines the amount of axes in the figure
                 naxes = config.naxes;
                 gui.backlogSize=config.backlogSize;
                 % used to save the incoming data
-                gui.databacklog = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
-                gui.dataSlidingWindow = zeros(size(gui.data.datamatrix,1),gui.backlogSize);
+                gui.databacklog = zeros(size(gui.data,1),gui.backlogSize);
+                gui.dataSlidingWindow = zeros(size(gui.data,1),gui.backlogSize);
                 gui.backlogPointer = 1;
                 % generates other graphic items
                 gui.generateGraphs(naxes,divParams);
@@ -257,12 +256,9 @@ classdef SimpleGui <handle
             % generates table and properties for the table which shows the
             % metadata of the important sensors
             
-            sensorLabels = cell2mat(gui.data.datamatrix(:,2));
-            gui.data.datamatrix(:,2) = gui.config.typetable(sensorLabels);
-            
             gui.impSensorsLabel = uitable('Parent', gui.root,...
                 'Position', [25 divParams(4)+75 divParams(3)+25 divParams(4)-75],...
-                'Data',gui.data.datamatrix(gui.importantSensors,1:2),...
+                'Data',gui.data(gui.importantSensors,1:2),...
                 'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', gui.config.font,...
                 'ColumnWidth',gui.config.impTabWidth ,...
                 'RowName',[],'ColumnName',{'Label', 'Type'}...
@@ -273,7 +269,7 @@ classdef SimpleGui <handle
             
             
             gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
-                gui.data.datamatrix(gui.importantSensors,3));
+                gui.data(gui.importantSensors,3));
             gui.impSensorsData.ColumnFormat = {'shortG'};
             gui.impSensorsData.ColumnWidth = {150};
             gui.impSensorsData.ColumnName = {'Value'};
@@ -290,14 +286,14 @@ classdef SimpleGui <handle
             gui.convTable.ColumnName = {'SI'};
             
             % constructs boolean representation of the important sensors
-            gui.impSensCheck = false(size(gui.data.datamatrix,1),1);
+            gui.impSensCheck = false(size(gui.data,1),1);
             gui.impSensCheck(gui.importantSensors) = true;
             gui.impSensCheck = num2cell(gui.impSensCheck);
             
             % table which shows all sensors, starts hidden
             gui.allSensors = uitable('Parent', gui.root, 'Position', ...
                 [divParams(3)+25 0 divParams(5) divParams(6) ],...
-                'Data',[gui.data.datamatrix(:,[1 3])],'RowName',[],...
+                'Data',[gui.data(:,[1 3])],'RowName',[],...
                 'ColumnName',[],'BackgroundColor', [0.9 0.9 1 ],...
                 'ColumnWidth', {100,75}, 'Visible','off',...
                 'CellSelectionCallback',@showProperties...
@@ -432,8 +428,8 @@ classdef SimpleGui <handle
                 end
                 gui.impSensCheck{idx} =  NewData;
                 % redraw the important sensor tables
-                gui.impSensorsLabel.Data = gui.data.datamatrix(gui.importantSensors,1:2);
-                gui.impSensorsData.Data = gui.data.datamatrix(gui.importantSensors,3);
+                gui.impSensorsLabel.Data = gui.data(gui.importantSensors,1:2);
+                gui.impSensorsData.Data = gui.data(gui.importantSensors,3);
                 gui.syncProperties();
             end
             
@@ -586,21 +582,21 @@ classdef SimpleGui <handle
         % Functionality: updates the sensor tables and graphs in the GUI
         function update(gui,data, updateAll,updateImp,updateGraph)
             % checks if all sensor data is in the defined range
-            outlierIdx = gui.checkValues(data.returnColumn(3));
+            outlierIdx = gui.checkValues(data(:,3));
             
             % if a value is not in the defined range, mark the outlier
 %             if(size(gui.sensorOutlier,1) > 0)
 %                 gui.allSensors.Data = ...
-%                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data.datamatrix(:,[1 3]),'all'));
+%                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
 %             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
                 gui.impSensorsData.Data = ...
-                    gui.convertData(data.datamatrix(gui.importantSensors,3),'imp');
+                    gui.convertData(data(gui.importantSensors,3),'imp');
             end
             % updates all sensordata if the flas is set to true
             if(updateAll)
-                gui.allSensors.Data = gui.convertData(data.datamatrix(:,[1 3]),'all');
+                gui.allSensors.Data = gui.convertData(data(:,[1 3]),'all');
             end
             
             % updates the graphs
@@ -638,7 +634,7 @@ classdef SimpleGui <handle
         function loadProperties(gui)
             load('Properties.mat');
             if(isempty(sensProps))
-                sensProps = cell(size(gui.data.datamatrix,1),1);
+                sensProps = cell(size(gui.data,1),1);
             end
             gui.sensorProperties = sensProps;
             gui.syncProperties();
@@ -722,8 +718,8 @@ classdef SimpleGui <handle
         % Functionality: saves the data in a ring buffer in order to
         % plot in on the graph
         function updateDatabacklog(gui, data)
-            %           newdata = cell2mat(gui.convertData(data.datamatrix(:,3),'log'));
-            newdata = cell2mat(data.datamatrix(:,3));
+            %           newdata = cell2mat(gui.convertData(data(:,3),'log'));
+            newdata = cell2mat(data(:,3));
             
             gui.databacklog(:,gui.backlogPointer) = newdata;
             
