@@ -219,7 +219,6 @@ classdef SimpleGui <handle
                 gui.sensorMax = cell2mat(gui.data(:,4));
                 gui.importantSensors = importantSensors;
                 gui.sensorProperties = cell(size(gui.data,1),1);
-                gui.sensorProperties
                 gui.updateRate = config.updateFreq;
                 gui.graphRate = config.graphUpdateRate;
                 gui.impRate = config.impUpdateRate;
@@ -259,7 +258,7 @@ classdef SimpleGui <handle
             % used to delete the timeout timer
             function figDeleteCallback(src,callbackdata)
                 delete(timerfindall());
-                delete(gcf)
+                delete(gcf);
             end
         end
 
