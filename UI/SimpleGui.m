@@ -211,10 +211,13 @@ classdef SimpleGui <handle
             if(nargin >0)
                 % sets the data properties
                 gui.data=sensorData;
-                gui.sensorLabel = sensorData(:,1);
-                gui.sensorTabel = sensorData(:,2);
-                gui.sensorMin = cell2mat(sensorData(:,3));
-                gui.sensorMax = cell2mat(sensorData(:,4));
+                if(strcmp(config.env,'local'))
+                    gui.data = sensorData.datamatrix;
+                end
+                gui.sensorLabel = gui.data(:,1);
+                gui.sensorTabel = gui.data(:,2);
+                gui.sensorMin = cell2mat(gui.data(:,3));
+                gui.sensorMax = cell2mat(gui.data(:,4));
                 gui.importantSensors = importantSensors;
                 gui.sensorProperties = cell(size(gui.data,1),1);
                 gui.sensorProperties
@@ -582,6 +585,9 @@ classdef SimpleGui <handle
         % Functionality: updates the sensor tables and graphs in the GUI
         function update(gui,data, updateAll,updateImp,updateGraph)
             % checks if all sensor data is in the defined range
+            if(strcmp(gui.config.env,'local'))
+                data = data.datamatrix;
+            end
             outlierIdx = gui.checkValues(data(:,3));
             
             % if a value is not in the defined range, mark the outlier

@@ -6,6 +6,7 @@ classdef NetworkEnv < Env
         sender
         receiver
         recording
+        identifiers
         footer
     end
 
@@ -24,15 +25,16 @@ classdef NetworkEnv < Env
             obj.recording = 0;
             
             load('SignalProperties.mat');
-
-            obj.signalproperties = table();
-            obj.signalproperties(:,:) = SignalProperties((2:end),:);
-
-            obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
             
-            %Check if all identifiers are unique.
-            identifiers = obj.signalproperties.Identifier;
-            assert(length(unique(identifiers)) == length(identifiers));
+             obj.identifiers = cell2mat(SignalProperties((2:end),1));
+             obj.signalproperties = table();
+             obj.signalproperties(:,:) = SignalProperties((2:end),:);
+            
+             obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
+%             
+             %Check if all identifiers are unique.
+             identifiers = obj.signalproperties.Identifier;
+             assert(length(unique(identifiers)) == length(identifiers));
        end
         
         
@@ -103,11 +105,26 @@ classdef NetworkEnv < Env
                 
                     packetData = packetData(2:end);
                     obj.hasNewData = true;
+                    
                     packetData = transpose(reshape(packetData,2,[]));
-                    packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
-                    tempData = table2cell(join(obj.signalproperties,packetTable));
-                    tempData(:,[1 2 3 4 5 6]) = tempData(:,[2 3 6 4 5 1]);
-                    obj.currentData = tempData;
+                    
+                    x = obj.identifiers;
+                    y = cell2mat(packetData(:,1));
+                    orderedValues = packetData(Env.mapId2Idx(x,y),2);
+                    if(isempty(obj.currentData))
+                       load('SignalProperties.mat');
+                       datamatrix = [SignalProperties((2:end),2:end) orderedValues];
+                       datamatrix(:,[1 2 3 4 5]) = datamatrix(:,[1 2 5 3 4 ]);
+                       datamatrix(:,1) = datamatrix{:,1};
+                       obj.currentData =datamatrix;
+                    else
+                        obj.currentData(:,3) = orderedValues;
+                    end
+                    
+                    %packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
+                    %tempData = table2cell(join(obj.signalproperties,packetTable));
+                    %tempData(:,[1 2 3 4 5 6]) = tempData(:,[2 3 6 4 5 1])
+                    %obj.currentData = tempData;
                 end
                 
             else
