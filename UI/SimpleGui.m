@@ -110,9 +110,9 @@ classdef SimpleGui <handle
                 cnt =0;
                 
                 while gui.updateFlag;
-                    allUpdate= gui.updateRate;
-                    impUpdate= gui.updateRate;
-                    graphUpdate = gui.updateRate;
+                    allUpdate= gui.allRate;
+                    impUpdate= gui.impRate;
+                    graphUpdate = gui.graphRate;
 
                     cnt = cnt+1;    
                     currUpdateRate = cnt/toc;
@@ -131,9 +131,8 @@ classdef SimpleGui <handle
                 'Position',[(gui.root.Position(3)*0.8)-350 600 150 25],...
                 'String','Toggle Recording'...
                 );
-            % Function: updateC
-            % Functionality: callback function for the update checkbox
-            % updates GUI when the checkbox is marked            
+            % Function: toggleRecording
+            % Functionality: toggles the data recording on the PI          
             function toggleRecording(hObject, eventdata, handles)
                 record = get(hObject,'Value') == get(hObject,'Max');
                 if(~strcmp(config.env,'local'))
@@ -229,7 +228,7 @@ classdef SimpleGui <handle
                 
                 % calls the figure object and defines some margins
                 gui.root = figure('Position',config.figPos , 'MenuBar', 'None'...
-                    ,'DeleteFcn',@figDeleteCallback,'Resize','off');
+                    ,'CloseRequestFcn',@figDeleteCallback,'Resize','off');
                 divParams =[
                     gui.root.Position(1)+(gui.root.Position(3)*0.8)
                     gui.root.Position(2)+(gui.root.Position(4)*0.5)
@@ -254,8 +253,13 @@ classdef SimpleGui <handle
                 
 
             end   
-            function figDeleteCallback()
+            
+            % Function: figDeleteCallback
+            % Functionality: callback function when figure is closed;
+            % used to delete the timeout timer
+            function figDeleteCallback(src,callbackdata)
                 delete(timerfindall());
+                delete(gcf)
             end
         end
 
@@ -469,8 +473,8 @@ classdef SimpleGui <handle
             % Functionality: changes update frequency of the visual
             % elements
             function changeUpdateFreq(control, event)
-                control
-                event
+                control;
+                event;
                 switch event.Indices(2) 
                     case 1
                         gui.updateRate = event.NewData;
