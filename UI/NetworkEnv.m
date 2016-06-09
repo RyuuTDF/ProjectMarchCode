@@ -7,6 +7,7 @@ classdef NetworkEnv < Env
         receiver
         recording
         identifiers
+        footer
     end
 
 	methods
@@ -25,15 +26,15 @@ classdef NetworkEnv < Env
             
             load('SignalProperties.mat');
             
-            obj.identifiers = cell2mat(SignalProperties((2:end),1));
-%             obj.signalproperties = table();
-%             obj.signalproperties(:,:) = SignalProperties((2:end),:);
+             obj.identifiers = cell2mat(SignalProperties((2:end),1));
+             obj.signalproperties = table();
+             obj.signalproperties(:,:) = SignalProperties((2:end),:);
             
-%             obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
+             obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
 %             
-%             %Check if all identifiers are unique.
-%             identifiers = obj.signalproperties.Identifier;
-%             assert(length(unique(identifiers)) == length(identifiers));
+             %Check if all identifiers are unique.
+             identifiers = obj.signalproperties.Identifier;
+             assert(length(unique(identifiers)) == length(identifiers));
        end
         
         
@@ -80,6 +81,7 @@ classdef NetworkEnv < Env
         % Function: updateData
         % Functionality: Updates the currentData, according to the delta      
         function obj = receivedDelta(obj, packet)
+            
             x = [packet(end-2) packet(end-1)];
             packetChecksum = typecast(uint8(x), 'uint16');
           
@@ -87,7 +89,11 @@ classdef NetworkEnv < Env
             if packetChecksum == obj.referenceChecksum
             	%Decompress and deserialize the data.
                 decompressed = bitxor(zlibdecode(packet(1:end-3)), obj.referenceData);
+                obj.footer = decompressed(end-12:end);
+                decompressed = decompressed(1:end-13);
+                
                 packetData = deserialize(decompressed);
+                
                 
                 temp = packetData(1);
                 time = temp{1,1};
@@ -101,12 +107,24 @@ classdef NetworkEnv < Env
                     obj.hasNewData = true;
                     
                     packetData = transpose(reshape(packetData,2,[]));
-                    orderedValues = packetData(Env.mapId2Idx(obj.identifiers,packetData(:,1)),2)
                     
-
+                    x = obj.identifiers;
+                    y = cell2mat(packetData(:,1));
+                    orderedValues = packetData(Env.mapId2Idx(x,y),2);
+                    if(isempty(obj.currentData))
+                       load('SignalProperties.mat');
+                       datamatrix = [SignalProperties((2:end),2:end) orderedValues];
+                       datamatrix(:,[1 2 3 4 5]) = datamatrix(:,[1 2 5 3 4 ]);
+                       datamatrix(:,1) = datamatrix{:,1};
+                       obj.currentData =datamatrix;
+                    else
+                        obj.currentData(:,3) = orderedValues;
+                    end
                     
-                    packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});                   
-                    obj.currentData = table2cell(join(obj.signalproperties,packetTable));
+                    %packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
+                    %tempData = table2cell(join(obj.signalproperties,packetTable));
+                    %tempData(:,[1 2 3 4 5 6]) = tempData(:,[2 3 6 4 5 1])
+                    %obj.currentData = tempData;
                 end
                 
             else
@@ -148,7 +166,7 @@ classdef NetworkEnv < Env
                         obj = receivedReference(obj, packet);
                         
                         %Testing Purposes
-                        %fprintf('Reference Packet received\n');
+                        fprintf('Reference Packet received\n');
                     
                     %Only update delta checksum if it's a delta packet.
                     elseif packetType == 2
