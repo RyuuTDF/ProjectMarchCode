@@ -228,7 +228,8 @@ classdef SimpleGui <handle
                 
                 
                 % calls the figure object and defines some margins
-                gui.root = figure('Position',config.figPos , 'MenuBar', 'None','Resize','off');
+                gui.root = figure('Position',config.figPos , 'MenuBar', 'None'...
+                    ,'DeleteFcn',@figDeleteCallback,'Resize','off');
                 divParams =[
                     gui.root.Position(1)+(gui.root.Position(3)*0.8)
                     gui.root.Position(2)+(gui.root.Position(4)*0.5)
@@ -250,7 +251,12 @@ classdef SimpleGui <handle
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
                 gui.loadProperties();
+                
+
             end   
+            function figDeleteCallback()
+                delete(timerfindall());
+            end
         end
 
         % Function: generateTable
