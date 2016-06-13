@@ -183,7 +183,10 @@ classdef NetworkEnv < Env
         
         function obj = startRecording(obj)
             t = datetime('now');
-            sendData = [uint32(2); uint32(posixtime(t))];
+            p = uint32(posixtime(t));
+            p = typecast(p, 'uint16');
+            sendData = [uint16(2) p];
+            
             step(obj.sender, sendData);
             
             obj.recording = 1;
