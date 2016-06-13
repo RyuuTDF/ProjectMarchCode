@@ -53,6 +53,7 @@ classdef SimpleGui <handle
         ddg4;
         line3;
         line4;
+        showLegend;
         
         root;% base figure of the simpleGUI
         
@@ -330,7 +331,7 @@ classdef SimpleGui <handle
             
             %toggle for showing the all sensors table
             showAll = uicontrol('Style','checkbox','Callback',@toggleAll,...
-                'Position',[divParams(3)-350 divParams(6)-70 150 25],...
+                'Position',[divParams(3)-350 625 150 25],...
                 'String','Show all sensors table'...
                 );
             
@@ -519,6 +520,7 @@ classdef SimpleGui <handle
             gui.graph2.Units = 'normalized';
             gui.graph2.Title.String = 'Graph 2';
             
+            
             if(naxes >2)
                 gui.graph3 = axes('Units','pixels', 'Position', ...
                     [25+(2*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25]);
@@ -532,26 +534,76 @@ classdef SimpleGui <handle
                 gui.ddg3 = uicontrol('Style', 'listbox',...
                     'String', gui.sensorLabel,...
                     'Position', [25+(2*divParams(3)/naxes) divParams(4) 125 75],...
-                    'Max',7 ...
+                    'Max',7 ,'Tag','3' ,'Callback',@redrawLegend...
                     );
                 gui.ddg4 = uicontrol('Style', 'listbox',...
                     'String', gui.sensorLabel,'Value',2,...
                     'Position', [25+(3*divParams(3)/naxes) divParams(4) 125 75]...
-                    ,'Max', 7 ...
+                    ,'Max', 7 ,'Tag','4' ,'Callback',@redrawLegend...
                     );
             end
+            
+
             
             gui.ddg1 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,...
                 'Position', [25 divParams(4) 125 75],...
-                'Max',7 ...
+                'Max',7,'Tag','1' ,'Callback',@redrawLegend ...
                 );
             gui.ddg2 = uicontrol('Style', 'listbox',...
                 'String', gui.sensorLabel,'Value',2,...
                 'Position', [25+(divParams(3)/naxes) divParams(4) 125 75]...
-                ,'Max', 7 ...
+                ,'Max', 7,'Tag','2','Callback',@redrawLegend ...
                 );
+            
+            gui.showLegend = uicontrol('Style','checkbox','Callback',@toggleLegend,...
+                'Position',[divParams(3)-375 575 150 25],...
+                'String','Show Legend'...
+            );
+            
+            % Function: redrawLegend
+            % Function: add legend to graphs
+            % Incomple
+            function redrawLegend(obj,event)
+                if(gui.showLegend.Value)
+                    switch obj.Tag
+                        case '1'
+                            ax = gui.graph;
+                        case '2'
+                            ax = gui.graph2;
+                        case '3'
+                            ax = gui.graph3;
+                        case '4'
+                            ax = gui.graph4;
+                        otherwise
+                    end
+
+                    gui.plotLine(transpose(gui.dataSlidingWindow(obj.Value,:)),ax,str2num(obj.Tag));
+                    l =  legend(ax,gui.sensorLabel(obj.Value));
+                    l.Position([1 3]) = [ax.Position(1)+0.05 0.25]; 
+                end
+            end
+            
+            function toggleLegend(obj, event)
+                if (obj.Value)
+                    redrawLegend(gui.ddg1);
+                    redrawLegend(gui.ddg2);
+                    if(gui.config.naxes >2)
+                        redrawLegend(gui.ddg3);
+                        redrawLegend(gui.ddg4);
+                    end
+                else
+                    legend(gui.graph,'hide');
+                    legend(gui.graph2,'hide');
+                    if(gui.config.naxes > 2)
+                        legend(gui.graph3,'hide');
+                        legend(gui.graph4,'hide');
+                    end
+                end
+            end
         end
+        
+
         
         % Function: convertData
         % Functionality: transforms the data according to the SI unit and
@@ -602,6 +654,8 @@ classdef SimpleGui <handle
                     end
                 end
             end
+            
+            
         end
         
         % Function: update
