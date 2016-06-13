@@ -212,7 +212,23 @@ classdef SimpleGui <handle
             html = ['<html><table border=0 width=400 bgcolor=',color,...
                 '><TR><TD>',str,'</TD></TR> </table></html>'];
         end
+        
+        % Function: shortenStringArr
+        % Functionality: ensures all strings in arr have a length of n
+        
+        function arr = shortenStringArr(arr,n)
+            arr = cellfun(@(x)SimpleGui.shortenString(x,n),arr...
+                ,'UniformOutput',false);
+        end
+        
+        function str =  shortenString(str,n)
+            if(size(str,2)>n)
+                str = str(1:n);
+            end
+        end
     end
+    
+    
     
     methods
         % Function: SimpleGui
@@ -557,7 +573,7 @@ classdef SimpleGui <handle
                 );
             
             gui.showLegend = uicontrol('Style','checkbox','Callback',@toggleLegend,...
-                'Position',[divParams(3)-375 575 150 25],...
+                'Position',[(gui.root.Position(3)*0.8)-350 675 150 25],...
                 'String','Show Legend'...
             );
             
@@ -577,10 +593,11 @@ classdef SimpleGui <handle
                             ax = gui.graph4;
                         otherwise
                     end
-
+                        
+                    shortLabels = SimpleGui.shortenStringArr(gui.sensorLabel(obj.Value),gui.config.legendLength);
                     gui.plotLine(transpose(gui.dataSlidingWindow(obj.Value,:)),ax,str2num(obj.Tag));
-                    l =  legend(ax,gui.sensorLabel(obj.Value));
-                    l.Position([1 3]) = [ax.Position(1)+0.05 0.25]; 
+                    l =  legend(ax,shortLabels);
+                    l.Position([1 3]) = [ax.Position(1)+0.05 0.10]; 
                 end
             end
             
