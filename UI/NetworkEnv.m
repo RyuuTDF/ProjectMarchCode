@@ -183,9 +183,9 @@ classdef NetworkEnv < Env
         
         function obj = startRecording(obj)
             t = datetime('now');
-            sendData = cell(2,1);
-            sendData(1,1) = uint16(2);
-            sendData{2,1} = uint32(posixtime(t));
+            p = uint32(posixtime(t));
+            p = typecast(p, 'uint16');
+            sendData = [uint16(2) p];
             
             step(obj.sender, sendData);
             
