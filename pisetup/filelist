@@ -8,6 +8,13 @@ replace	dnsmasq.conf	/etc/dnsmasq.conf
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
 replace	forwarder	/opt/exo/forwarder
 replace	reference	/opt/exo/reference
+replace	recorder	/opt/exo/recorder
+replace	convert	/opt/exo/convert
+replace	http.py	/opt/exo/http.py
+replace	static/bootstrap.css	/opt/exo/static/bootstrap.css
+replace	static/bootstrap.js	/opt/exo/static/bootstrap.js
+replace	static/jquery-1.11.0.js	/opt/exo/static/jquery-1.11.0.js
+replace	templates/index.html	/opt/exo/templates/index.html
 replace	forwarder.service	/etc/systemd/system/forwarder.service
 replace	reference.service	/etc/systemd/system/reference.service
 replace	hostapd.conf	/etc/hostapd/hostapd.conf

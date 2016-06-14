@@ -1,10 +1,10 @@
 [Unit]
-Description=Reference service on port 25001
+Description=Recording retrieval HTTP server
 After=forwarder.service
 
 [Service]
 Type=simple
-ExecStart=/opt/exo/reference
+ExecStart=/opt/exo/http.py
 
 [Install]
 WantedBy=multi-user.target
