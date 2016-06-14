@@ -24,45 +24,6 @@
 #define BUFLEN 65507  //Max length of buffer
 #define RECORDING_DIR "/home/pi/recordings/"
 
-void requestReference(short chk){
-	int socket_out;
-	struct sockaddr_in si_out, si_me;
-	//Setup socket for sending data
-	if ((socket_out = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		die("socket (out)");
-	}
-
-
-	memset((char *) &si_out, 0, sizeof(si_out));
-	si_out.sin_family = AF_INET;
-	si_out.sin_port = htons(PORT_OUT);
-	memset((char *) &si_me, 0, sizeof(si_me));
-	si_me.sin_family = AF_INET;
-	si_me.sin_port = 0;
-	if (inet_aton(REFERENCE, &si_out.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);
-	}
-
-	if (inet_aton(SERVER, &si_me.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);
-	}
-	if(bind(socket_out, (struct sockaddr*) &si_me, sizeof(si_me)) == -1){
-		printf("Could not bind to correct network...\n");
-	}
-	char packet[3];
-	packet[0] = 1;
-	memcpy(packet + 1, &chk, 2);
-	if(sendto(socket_out, packet, 3, 0,
-					(struct sockaddr *) &si_out, sizeof(si_out)) == -1){
-		perror("Socket send");
-	}
-	sleep(1);
-	shutdown(socket_out, SHUT_RDWR);
-
-}
-
 int main(int argc, char *argv[]) {
 	//At first, open the shared memory. Details on the recording request can be found there
 	struct SharedMemory* sharedMemory;
@@ -116,6 +77,8 @@ int main(int argc, char *argv[]) {
 	close(fd);
 	close(pipe);
 	sharedMemory->recordingState = 0;
+	if((sharedMemory->softwareState & SW_RECORDER) == SW_RECORDER)
+		sharedMemory->softwareState -= SW_RECORDER;
 	close(mfd);
 	return 0;
 }

@@ -9,7 +9,6 @@
 #include <string.h> //memset
 #include <stdlib.h> //exit(0);
 #include <fcntl.h> //file operations
-#include <time.h> // Performance timing
 #include <sys/mman.h> //Shared memory
 #include <arpa/inet.h> //Address structure for sockets
 #include <sys/socket.h> //Sockets

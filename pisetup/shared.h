@@ -9,6 +9,11 @@
 #define SHARED_H_
 
 #include <time.h>
+#include <sys/mman.h> //Shared memory
+#include <time.h> // Performance timing
+#include <sys/types.h>
+#include <stdlib.h> //exit(0);
+#include <unistd.h>
 
 #define MMAPFILE "/run/exoshm"
 #define TMP_DIR "/run/"
