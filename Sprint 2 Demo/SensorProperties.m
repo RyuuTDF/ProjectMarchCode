@@ -1,5 +1,5 @@
 classdef SensorProperties
-    % SENSORPROPERTIES contains the properties of a given sensor
+    %Contains properties of given sensor
     
     properties
         label = '';
@@ -13,8 +13,6 @@ classdef SensorProperties
     end
     
     methods
-        % Function: SensorProperties
-        % Functionality: Constructor
         function sensor = SensorProperties(label, type,min,max)
             if(nargin >0)
                 sensor.label = label;

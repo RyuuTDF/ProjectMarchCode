@@ -24,7 +24,10 @@ def run():
 			replace(source, destination)
 	config.close()
 
-
+## def modify
+# Modifies a file according to given directions
+# @param source The file containing the modification directions
+# @param destination The file to apply the modifications to
 def modify(source, destination):
 	if os.path.exists(destination):
 		shutil.move(destination, destination + ".bak")
@@ -38,7 +41,10 @@ def modify(source, destination):
 	else:
 		print "ERROR: can't modify non-existing file " + source + "!"
 
-
+## def append
+# Appends the contents of a file to another one
+# @param source The file with the contents to be apppended
+# @param destination The file which has to be appended to
 def append(source, destination):
 	if not checkPathFor(destination):
 		return
@@ -52,7 +58,10 @@ def append(source, destination):
 			for inputLine in input:
 				output.write(inputLine)
 
-
+## def replace
+# Replace a file by another file (or create a new file)
+# @param source The file with the new contents
+# @param destination The file to be replaced or created
 def replace(source, destination):
 	if not checkPathFor(destination):
 		return
@@ -61,6 +70,10 @@ def replace(source, destination):
 	print "Replacing file " + source
 	shutil.copy(source, destination)
 
+## def replaceWithList
+# Replaces all occurences of replace directions in a list in a string
+# @param subject String containing text to be replaced
+# @param replaceList List of replacement directions
 def replaceWithList(subject, replaceList):
 	if len(replaceList) == 0:
 		return subject
@@ -68,7 +81,10 @@ def replaceWithList(subject, replaceList):
 		last = replaceList.pop()
 		return replaceWithList(subject.replace(last[0], last[1]), replaceList)
 
-
+## def readReplacements
+# Reads replacement directions from a file into a list
+# @param input Filename of the file containing the directions
+# @return List of replacement directions
 def readReplacements(input):
 	resultList = []
 	with open(input) as file:
@@ -85,7 +101,7 @@ def readReplacements(input):
 
 ## def checkPathFor
 # Will check if path exists for filename, and if not try to create required directories
-# @param filename
+# @param filename Name of the file that will be created after 
 def checkPathFor(filename):
 	directory = os.path.dirname(filename)
 	if not os.path.exists(directory):

@@ -128,7 +128,6 @@ int main(int argc, char *argv[]) {
 		}else{
 			printf("Request for unknown command %h", cmd);
 		}
-
 	}
 	close(mfd);
 	shutdown(s_out, SHUT_RDWR);
