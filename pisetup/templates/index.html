@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Recordings</title>
+
+    <!-- Bootstrap -->
+    <link href="static/bootstrap.css" rel="stylesheet">
+  </head>
+  <body>
+    
+    <div class="container">
+
+      <div class="starter-template">
+        <h1>Recordings on this device</h1>
+        <p class="lead">Choose 'Save as' in your webbrowser on any of the following links to download the recording</p>
+      </div>
+      <table class="table table-striped">
+      {% for item in dowloadlist %}
+        <tr><td><a href="/download/{{ item }}">{{ item }}</a></td></tr>
+        {% endfor %}
+    </table>
+
+    </div><!-- /.container -->
+
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="static/jquery-1.11.0.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="static/bootstrap.js"></script>
+  </body>
+</html> 
