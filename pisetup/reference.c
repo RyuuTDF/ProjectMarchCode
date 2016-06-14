@@ -120,6 +120,10 @@ int main(int argc, char *argv[]) {
 				memcpy(&sharedMemory->recorderStartTime, buf + 2, 4);
 				//execvp("service", ("service", "recorder", "start", NULL));
 				//TODO: start recorder service
+				if(fork() == 0){
+					execl("/opt/exo/recorder", "/opt/exo/recorder", NULL);
+					exit(0);
+				}
 			}
 
 		}else if(cmd == 3){
@@ -128,6 +132,7 @@ int main(int argc, char *argv[]) {
 		}else{
 			printf("Request for unknown command %h", cmd);
 		}
+
 	}
 	close(mfd);
 	shutdown(s_out, SHUT_RDWR);
