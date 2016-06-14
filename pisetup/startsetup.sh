@@ -39,6 +39,8 @@ printf "Compiling bridge software...\n"
 
 gcc projectmarchcode/pisetup/forwarder.c -o projectmarchcode/pisetup/forwarder -std=c11 -lz -D_BSD_SOURCE -Wall
 gcc projectmarchcode/pisetup/reference.c -o projectmarchcode/pisetup/reference -std=c11 -D_BSD_SOURCE -Wall
+gcc projectmarchcode/pisetup/recorder.c -o projectmarchcode/pisetup/recorder -std=c11 -D_BSD_SOURCE -Wall
+gcc projectmarchcode/pisetup/convert.c -o projectmarchcode/pisetup/convert -std=c11 -lz -D_BSD_SOURCE -Wall
 
 printf "Executing configuration script...\n"
 python projectmarchcode/pisetup/configurator.py
@@ -46,6 +48,8 @@ python projectmarchcode/pisetup/configurator.py
 printf "Configuring service for starting on boot...\n"
 chmod +x /opt/exo/forwarder
 chmod +x /opt/exo/reference
+chmod +x /opt/exo/recorder
+chmod +x /opt/exo/convert
 chmod +x /home/pi/statuscli.py
 chown pi:pi /home/pi/statuscli.py
 systemctl enable hostapd

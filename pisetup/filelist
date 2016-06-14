@@ -8,6 +8,8 @@ replace	dnsmasq.conf	/etc/dnsmasq.conf
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
 replace	forwarder	/opt/exo/forwarder
 replace	reference	/opt/exo/reference
+replace	recorder	/opt/exo/recorder
+replace	convert	/opt/exo/convert
 replace	forwarder.service	/etc/systemd/system/forwarder.service
 replace	reference.service	/etc/systemd/system/reference.service
 replace	hostapd.conf	/etc/hostapd/hostapd.conf
