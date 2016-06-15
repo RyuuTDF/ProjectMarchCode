@@ -86,8 +86,7 @@ classdef SimpleGui <handle
                 env = LocalEnv(config.src);
             else
                 env = NetworkEnv();
-            end
-            
+            end           
             while isempty(env.currentData)
                 env = updateData(env);
             end
