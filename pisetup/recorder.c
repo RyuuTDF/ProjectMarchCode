@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/stat.h>//mkfifo
+#include <time.h>
 #include "shared.h"
 
 #define REFERENCE "127.0.0.1"
@@ -40,7 +41,7 @@ int main(int argc, char *argv[]) {
 	//Forwarder is the only program that will create the shared memory.
 	sharedMemory->softwareState = sharedMemory->softwareState | SW_RECORDER;
 	//Variable definitions
-	int socket_in, recv_len;
+	int recv_len;
 	unsigned char buf[BUFLEN];
 
 	char fileNamePart[32];
@@ -52,7 +53,7 @@ int main(int argc, char *argv[]) {
 	int fd = open(filename, O_RDWR | O_CREAT);
 	//Wait for the forwarder making preparations for the recording
 	char pipename[sizeof(char) * strlen(TMP_DIR) + 5];
-	sprintf(pipename, "%s%x", TMP_DIR, sharedMemory->recorderStartTime);
+	sprintf(pipename, "%s%lx", TMP_DIR, sharedMemory->recorderStartTime);
 	printf("Creating pipe...\n");
 	mkfifo(pipename, 0600);
 	sharedMemory->recordingState = (sharedMemory->recordingState | RECORDING_STOPPED);

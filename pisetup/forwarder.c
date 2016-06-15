@@ -14,6 +14,7 @@
 #include <sys/socket.h> //Sockets
 #include <zlib.h> //Compression
 #include "shared.h"
+#include "timing.h"
 
 //TODO: Move some of these constants to a config file
 #define SERVER "192.168.21.1"
@@ -159,7 +160,7 @@ int main(int argc, char *argv[]) {
 			//Open recording pipe
 			printf("Preparing for recording\n");
 			char filename[sizeof(char) * strlen(TMP_DIR) + 9];
-			sprintf(filename, "%s%x", TMP_DIR, sharedMemory->recorderStartTime);
+			sprintf(filename, "%s%lx", TMP_DIR, sharedMemory->recorderStartTime);
 			printf("Opening pipe for writing...\n");
 			pipe = open(filename, O_WRONLY);
 			//Write the reference packet to the pipe
