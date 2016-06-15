@@ -50,12 +50,14 @@ chmod +x /opt/exo/forwarder
 chmod +x /opt/exo/reference
 chmod +x /opt/exo/recorder
 chmod +x /opt/exo/convert
+chmod +x /op/exo/http.py
 chmod +x /home/pi/statuscli.py
 chown pi:pi /home/pi/statuscli.py
 systemctl enable hostapd
 systemctl enable dnsmasq
 systemctl enable forwarder
 systemctl enable reference
+systemctl enable http
 
 # Next part is based on raspi-config (except thee last two lines)
 
