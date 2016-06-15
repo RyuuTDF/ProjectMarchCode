@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include "shared.h"
+#include "udpserver.h"
 
 //TODO: Move some of these constants to a config file
 #define SERVER "0.0.0.0"
@@ -54,78 +55,58 @@ void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sh
 	}
 }
 
+void startRecording(SharedMemory* sharedMemory, long int startTime){
+	//Make sure that there is not an already running recording
+	if((sharedMemory->recordingState & RECORDING_RUNNING) != RECORDING_RUNNING){
+		sharedMemory->recordingState = (sharedMemory->recordingState | RECORDING_WANTED);
+		sharedMemory->recorderStartTime = startTime;
+		//Execute recorder tool in separate process
+		if(fork() == 0){
+			execl("/opt/exo/recorder", "/opt/exo/recorder", NULL);
+			exit(0);
+		}
+	}
+}
+
 int main(int argc, char *argv[]) {
 	//Declaration of variables
-	struct sockaddr_in si_me, si_other, si_out;
-	int s_in, s_out, recv_len;
+	int socket_in, socket_out, recv_len, mmapFile;
+	struct sockaddr_in si_other, si_out;
 	struct SharedMemory* sharedMemory;
-	unsigned int slen = sizeof(si_other);
-	unsigned char buf[BUFLEN];
-	//create a UDP listening socket
-	if ((s_in = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		die("Socket initialisation failed.\n");
-	}
-
-	// zero out the structure
-	memset((char *) &si_me, 0, sizeof(si_me));
-
-	si_me.sin_family = AF_INET;
-	si_me.sin_port = htons(PORT_IN);
-	if (inet_aton(SERVER, &si_me.sin_addr) == 0) {
-		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);
-	}
-
-	//bind socket to port
-	while (bind(s_in, (struct sockaddr*) &si_me, sizeof(si_me)) == -1) {
-		printf("Network not ready (yet). Retrying in 10 seconds\n");
-		sleep(10);
-	}
-
-	//Setup of the socket for sending responses
-	if ((s_out = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-		die("socket (out)");
-	}
+	unsigned short cmd;
+	unsigned char buffer[BUFLEN];
+	unsigned int si_len = sizeof(si_other);
+	socket_in = openUdpListener(SERVER, PORT_IN);
+	socket_out = openUdpSender(0);
 	//Partially initialise the address structure for replies
 	memset((char *) &si_out, 0, sizeof(si_out));
 	si_out.sin_family = AF_INET;
 	si_out.sin_port = htons(PORT_OUT);
-	int mfd;
-	openShm(&mfd, &sharedMemory, PROT_READ | PROT_WRITE, O_RDWR);
+	openShm(&mmapFile, &sharedMemory, PROT_READ | PROT_WRITE, O_RDWR);
 	sharedMemory->softwareState = (sharedMemory->softwareState | SW_REFERENCE);
 
 	//keep listening for data
 	while (1) {
 		//try to receive some data, this is a blocking call
-		if ((recv_len = recvfrom(s_in, buf, BUFLEN, 0,
-				(struct sockaddr *) &si_other, &slen)) == -1) {
+		if ((recv_len = recvfrom(socket_in, buffer, BUFLEN, 0,
+				(struct sockaddr *) &si_other, &si_len)) == -1) {
 			sharedMemory->softwareState = sharedMemory->softwareState & !SW_REFERENCE;
 			die("Receiving data failed.\n");
 		}
-
-		si_out.sin_addr = si_other.sin_addr;
 		//Multiple commands possible, cmd will contain the requested action
-		unsigned short cmd;
-		memcpy(&cmd, buf, 2);
-
+		memcpy(&cmd, buffer, 2);
+		printf("cmd: %i\n", cmd);
 		if(cmd == 1){
 			//Send reference packet
 			unsigned short chk;
-			memcpy(&chk, buf + 2, 2);
-			sendReference(chk, si_out, sharedMemory, s_out);
+			memcpy(&chk, buffer + 2, 2);
+			si_out.sin_addr = si_other.sin_addr;
+			sendReference(chk, si_out, sharedMemory, socket_out);
 		}else if(cmd == 2){
 			//Start recording
-			if((sharedMemory->recordingState & RECORDING_RUNNING) != RECORDING_RUNNING){
-				sharedMemory->recordingState = (sharedMemory->recordingState | RECORDING_WANTED);
-				memcpy(&sharedMemory->recorderStartTime, buf + 2, 4);
-				//execvp("service", ("service", "recorder", "start", NULL));
-				//TODO: start recorder service
-				if(fork() == 0){
-					execl("/opt/exo/recorder", "/opt/exo/recorder", NULL);
-					exit(0);
-				}
-			}
-
+			long int startTime;
+			memcpy(&startTime, buffer + 2, 4);
+			startRecording(sharedMemory, startTime);
 		}else if(cmd == 3){
 			//Stop recording. The recorder service will get the changed state in its main loop
 			sharedMemory->recordingState = (sharedMemory->recordingState & !RECORDING_WANTED);
@@ -134,7 +115,7 @@ int main(int argc, char *argv[]) {
 		}
 
 	}
-	close(mfd);
-	shutdown(s_out, SHUT_RDWR);
-	shutdown(s_in, SHUT_RDWR);
+	close(mmapFile);
+	shutdown(socket_out, SHUT_RDWR);
+	shutdown(socket_in, SHUT_RDWR);
 }
