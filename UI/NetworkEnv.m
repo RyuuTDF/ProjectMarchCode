@@ -8,6 +8,7 @@ classdef NetworkEnv < Env
         recording
         identifiers
         footer
+        idchecked
     end
 
 	methods
@@ -23,18 +24,20 @@ classdef NetworkEnv < Env
             obj.lastDeltaChecksum = 0;
             obj.simulationTime = 0;
             obj.recording = 0;
+            obj.idchecked = 0;
             
             load('SignalProperties.mat');
             
-             obj.identifiers = cell2mat(SignalProperties((2:end),1));
-             obj.signalproperties = table();
-             obj.signalproperties(:,:) = SignalProperties((2:end),:);
+            obj.identifiers = cell2mat(SignalProperties((2:end),1));
+            obj.signalproperties = table();
+            obj.signalproperties(:,:) = SignalProperties((2:end),:);
             
-             obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
+            obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
             
              %Check if all identifiers are unique.
-             identifiers = obj.signalproperties.Identifier;
-             assert(length(unique(identifiers)) == length(identifiers));
+            identifiers = obj.signalproperties.Identifier;
+            assert(length(unique(identifiers)) == length(identifiers),...
+                'The identifiers defined in SignalProperties.mat are not unique.');
        end
         
         
@@ -48,6 +51,7 @@ classdef NetworkEnv < Env
                 % 1 = reference packet
                 % 2 = delta packet
                 obj.hasNewData = true;
+
                 packetType = packet(end);
                 
                 if packetType == 1                    
@@ -76,7 +80,6 @@ classdef NetworkEnv < Env
             
             x = [packet(end-2) packet(end-1)];
             packetChecksum = typecast(uint8(x), 'uint16');
-          
             %Check if the GUI has the correct reference packet
             if packetChecksum == obj.referenceChecksum
             	%Decompress and deserialize the data.
@@ -88,7 +91,6 @@ classdef NetworkEnv < Env
                 
                 temp = packetData(1);
                 time = temp{1,1};
-                
                 %Only accept later send delta packets
                 if obj.simulationTime < time
                     obj.simulationTime = time;
@@ -101,15 +103,22 @@ classdef NetworkEnv < Env
                     
                     x = obj.identifiers;
                     y = cell2mat(packetData(:,1));
+                    
+                    if ~obj.idchecked
+                        assert(length(unique(y)) == length(y),...
+                            'The identifiers defined in Simulink are not unique.');
+                        obj.idchecked = 1;
+                    end
+                    
                     orderedValues = packetData(Env.mapId2Idx(x,y),2);
                     
                     if(isempty(obj.currentData))
                        load('SignalProperties.mat');
                        datamatrix = [SignalProperties((2:end),2:end) orderedValues];
-                       datamatrix(:,[1 2 3 4 5]) = datamatrix(:,[1 2 5 3 4 ]);
+                       datamatrix(:,[1 2 3 4 5]) = datamatrix(:,[1 2 5 3 4]);
                        
-                       datamatrix(:,1) = [datamatrix{:,1}]
-                       obj.currentData =datamatrix;
+                       datamatrix(:,1) = [datamatrix{:,1}];
+                       obj.currentData = datamatrix;
                     else
                         obj.currentData(:,3) = orderedValues;
                     end
@@ -168,7 +177,7 @@ classdef NetworkEnv < Env
             t = datetime('now');
             p = uint32(posixtime(t));
             p = typecast(p, 'uint16');
-            sendData = [uint16(2); p];
+            sendData = [uint16(2) p];
             
             step(obj.sender, sendData);
             
