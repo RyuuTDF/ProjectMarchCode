@@ -33,7 +33,7 @@ void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sh
 	//Check existence of a stored packet
 	char filename[sizeof(char) * strlen(TMP_DIR) + 5];
 	sprintf(filename, "%s%x", TMP_DIR, chk);
-	printf("Request from %x for file %s\n", si_out.sin_addr, filename);
+	printf("Request from %s for file %s\n", inet_ntoa(si_out.sin_addr), filename);
 	if (access(filename, R_OK) != -1) {
 		//Requested packet is stored, so read it...
 		int fd = open(filename, O_RDONLY);
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
 			//Stop recording. The recorder service will get the changed state in its main loop
 			sharedMemory->recordingState = (sharedMemory->recordingState & !RECORDING_WANTED);
 		}else{
-			printf("Request for unknown command %h", cmd);
+			printf("Request for unknown command %i", cmd);
 		}
 
 	}

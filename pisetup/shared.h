@@ -8,9 +8,7 @@
 #ifndef SHARED_H_
 #define SHARED_H_
 
-#include <time.h>
 #include <sys/mman.h> //Shared memory
-#include <time.h> // Performance timing
 #include <sys/types.h>
 #include <stdlib.h> //exit(0);
 #include <unistd.h>
@@ -36,7 +34,7 @@ typedef struct __attribute__((__packed__)) SharedMemory {
 	short referenceLength; //2B [20-21]
 	short recordingState; //2B [22-23]
 	short softwareState; //2B [24-25]
-	unsigned long recorderStartTime; //4B [26-29]
+	long int recorderStartTime; //4B [26-29]
 } SharedMemory;
 
 int openShm(int* fd, struct SharedMemory** sharedMemPointer, int mapProt, int fileFlags){
@@ -74,15 +72,6 @@ typedef struct __attribute__((__packed__)) PacketFooter{
 void die(char *s) {
 	perror(s);
 	exit(1);
-}
-
-/**
- * Returns the current time in microsecond resolution. Suitable for performance timing.
- */
-static long get_micros() {
-	struct timespec ts;
-	timespec_get(&ts, TIME_UTC);
-	return (long) ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
 }
 
 #endif /* SHARED_H_ */
