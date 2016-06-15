@@ -50,9 +50,10 @@ chmod +x /opt/exo/forwarder
 chmod +x /opt/exo/reference
 chmod +x /opt/exo/recorder
 chmod +x /opt/exo/convert
-chmod +x /op/exo/http.py
+chmod +x /opt/exo/http.py
 chmod +x /home/pi/statuscli.py
 chown pi:pi /home/pi/statuscli.py
+mkdir /home/pi/recordings
 systemctl enable hostapd
 systemctl enable dnsmasq
 systemctl enable forwarder
