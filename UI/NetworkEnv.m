@@ -31,7 +31,7 @@ classdef NetworkEnv < Env
              obj.signalproperties(:,:) = SignalProperties((2:end),:);
             
              obj.signalproperties.Properties.VariableNames = SignalProperties(1,:);
-%             
+            
              %Check if all identifiers are unique.
              identifiers = obj.signalproperties.Identifier;
              assert(length(unique(identifiers)) == length(identifiers));
@@ -48,30 +48,23 @@ classdef NetworkEnv < Env
                 % 1 = reference packet
                 % 2 = delta packet
                 obj.hasNewData = true;
-                packetType = packet(end)
-                if packetType == 1
-                    %Testing Purposes
-                    fprintf('Reference Packet received\n');
-                    
+
+                packetType = packet(end);
+                
+                if packetType == 1                    
                     obj = receivedReference(obj, packet); 
-                    
                 elseif packetType == 2
-                    %Testing Purposes
-                    %fprintf('Delta Packet received\n');
                     obj = receivedDelta(obj, packet);
-                   
                 else
                     error('Invalid Packet Type');
                 end
             end
-                       
         end
 
         
         % Function: receivedReference
         % Functionality: Updates the referencePacket & referenceChecksum      
         function obj = receivedReference(obj, packet)
-            %Update the reference data.
             obj.referenceData = zlibdecode(packet(1:end-3));
             x = [packet(end-2) packet(end-1)];
             obj.referenceChecksum = typecast(uint8(x), 'uint16');
@@ -93,7 +86,6 @@ classdef NetworkEnv < Env
                 
                 packetData = deserialize(decompressed);
                 
-                
                 temp = packetData(1);
                 time = temp{1,1};
                 %Only accept later send delta packets
@@ -109,6 +101,7 @@ classdef NetworkEnv < Env
                     x = obj.identifiers;
                     y = cell2mat(packetData(:,1));
                     orderedValues = packetData(Env.mapId2Idx(x,y),2);
+                    
                     if(isempty(obj.currentData))
                        load('SignalProperties.mat');
                        datamatrix = [SignalProperties((2:end),2:end) orderedValues];
@@ -119,19 +112,14 @@ classdef NetworkEnv < Env
                     else
                         obj.currentData(:,3) = orderedValues;
                     end
-                    
-                    %packetTable = cell2table(packetData, 'VariableNames',{'Identifier' 'Value'});
-                    %tempData = table2cell(join(obj.signalproperties,packetTable));
-                    %tempData(:,[1 2 3 4 5 6]) = tempData(:,[2 3 6 4 5 1])
-                    %obj.currentData = tempData;
                 end
-                
             else
                 %Otherwise ask for new reference packet
                 obj.lastDeltaChecksum = packetChecksum;
                 obj = requestNewReference(obj);
             end
         end
+        
         
         % Function: requestNewReference
         % Functionality: Request a new reference packet if checksums don't match.   
@@ -152,44 +140,43 @@ classdef NetworkEnv < Env
             while ~newReference
                 packet = step(obj.receiver);
                 
-                   
                 if ~isempty(packet)
-                    % Check if the packet is the reference packet.
                     packetType = packet(end);
                     
+                    % Check if the packet is the reference packet.
                     if packetType == 1
                         stop(t);
                         delete(t);
                         
                         newReference = true;
                         obj = receivedReference(obj, packet);
-                        
-                        %Testing Purposes
-                        fprintf('Reference Packet received\n');
-                    
-                    %Only update delta checksum if it's a delta packet.
+                  
+                    %If it's a delta packet, only update delta checksum.
                     elseif packetType == 2
                         x = [packet(end-2) packet(end-1)];
                         obj.lastDeltaChecksum = typecast(uint8(x), 'uint16');
                     end
-                    
-                    %Testing Purposes
-                    %fprintf('A Packet was received\n');
                 end
             end
         end
         
+        
+        % Function: startRecording
+        % Functionality: Start packet recording on the Raspberry Pi.   
         function obj = startRecording(obj)
             t = datetime('now');
             p = uint32(posixtime(t));
             p = typecast(p, 'uint16');
-            sendData = [uint16(2) p];
+            sendData = [uint16(2); p];
             
             step(obj.sender, sendData);
             
             obj.recording = 1;
         end
         
+        
+        % Function: stopRecording
+        % Functionality: Stop packet recording on the Raspberry Pi. 
         function obj = stopRecording(obj)
             sendData = uint16(3);
             step(obj.sender, sendData);

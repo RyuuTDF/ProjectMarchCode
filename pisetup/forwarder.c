@@ -9,66 +9,30 @@
 #include <string.h> //memset
 #include <stdlib.h> //exit(0);
 #include <fcntl.h> //file operations
-#include <time.h> // Performance timing
 #include <sys/mman.h> //Shared memory
 #include <arpa/inet.h> //Address structure for sockets
 #include <sys/socket.h> //Sockets
 #include <zlib.h> //Compression
+#include "shared.h"
+#include "timing.h"
 
 //TODO: Move some of these constants to a config file
 #define SERVER "192.168.21.1"
 #define CLIENT "192.168.20.255"
-#define MMAPFILE "/run/exoshm"
-#define TMP_DIR "/run/"
 #define BUFLEN 65507  //Max length of buffer
 #define PORT 25000   //The port on which to send data
 
-/**
- * Returns the current time in microsecond resolution. Suitable for performance timing.
- */
-static long get_micros() {
-	struct timespec ts;
-	timespec_get(&ts, TIME_UTC);
-	return (long) ts.tv_sec * 1000000L + ts.tv_nsec / 1000L;
-}
-
-/**
- * Helper function for printing errors and aborting the program.
- */
-void die(char *s) {
-	perror(s);
-	exit(1);
-}
-
-/**
- * Update the shared memory with the given values.
- */
-int updateShm(char* mem, int connected, long double packets,
-		long double simTime, short chk) {
-	memcpy(mem, &connected, 4);
-	memcpy(mem + 4, &packets, 8);
-	memcpy(mem + 12, &simTime, 8);
-	memcpy(mem + 20, &chk, 2);
-	return 0;
-}
-
 int main(int argc, char *argv[]) {
 	//At first, open the shared memory. Other programs rely on this being present.
-	int mfd = open(MMAPFILE, O_RDWR | O_CREAT);
-	if (mfd == -1) {
-		perror("open");
-		return 1;
-	}
-	char mt[getpagesize()];
-	//Write data with the size of one page to initialise the file and memory
-	write(mfd, mt, getpagesize());
-	char* shMem = mmap((caddr_t) 0, getpagesize(), PROT_WRITE | PROT_READ,
-			MAP_SHARED, mfd, 0);
-	if (shMem == MAP_FAILED) {
+	struct SharedMemory* sharedMemory;
+	int mfd, pipe = 0;
+	openShm(&mfd, &sharedMemory, PROT_WRITE | PROT_READ, O_RDWR | O_CREAT);
+	if (sharedMemory == MAP_FAILED) {
 		perror("mmap");
 		return 1;
 	}
-
+	//Forwarder is the only program that will create the shared memory.
+	sharedMemory->softwareState = SW_FORWARDER;
 	//Variable definitions
 	//Address structs for the listening socktet and one for the designated receiver
 	struct sockaddr_in si_me, si_other, si_out;
@@ -128,7 +92,13 @@ int main(int argc, char *argv[]) {
 		//Get the simulation time from the buffer before modifications
 		long double simTime;
 		memcpy(&simTime, buf + 1, 8);
-
+		//Append statistics and status to buffer
+		struct PacketFooter footer;
+		footer.recorderStartTime = sharedMemory->recorderStartTime;
+		footer.recorderState = sharedMemory->recordingState;
+		footer.softwareState = sharedMemory->softwareState;
+		footer.strSize = sizeof(footer);
+		memcpy(buf + recv_len, &footer, footer.strSize);
 		if (recv_len != reference_len) {
 			//New reference packet
 			printf("New reference %d != %d\n", recv_len, reference_len);
@@ -157,7 +127,7 @@ int main(int argc, char *argv[]) {
 		if (deflateInit(&strm, 1) != Z_OK) {
 			die("deflateInit failed\n");
 		}
-		strm.avail_in = recv_len;
+		strm.avail_in = recv_len + footer.strSize;
 		strm.next_in = buf;
 		strm.avail_out = BUFLEN;
 		strm.next_out = compressed;
@@ -173,7 +143,7 @@ int main(int argc, char *argv[]) {
 		//send the message
 		if (sendto(socket_out, compressed, lenOut + 3, 0,
 				(struct sockaddr *) &si_out, slen) == -1) {
-			//Buffer for sending packats is full
+			//Buffer for sending packets is full
 			//The protocol does not fail on packet loss, so safely ignore this for now
 			//TODO: implement packet loss statistics for local user interface
 		}
@@ -181,15 +151,52 @@ int main(int argc, char *argv[]) {
 		if (type == 1) {
 			char filename[sizeof(char) * strlen(TMP_DIR) + 5];
 			sprintf(filename, "%s%x", TMP_DIR, reference_len);
+			unlink(filename);//Delete file first if it is already present somehow
 			int fd = open(filename, O_WRONLY | O_CREAT);
 			write(fd, compressed, lenOut + 3);
 			close(fd);
 		}
+		if(sharedMemory->recordingState == (RECORDING_WANTED | RECORDING_STOPPED)){
+			//Open recording pipe
+			printf("Preparing for recording\n");
+			char filename[sizeof(char) * strlen(TMP_DIR) + 9];
+			sprintf(filename, "%s%lx", TMP_DIR, sharedMemory->recorderStartTime);
+			printf("Opening pipe for writing...\n");
+			pipe = open(filename, O_WRONLY);
+			//Write the reference packet to the pipe
+			printf("Pipe opened. Writing metadata.\n");
+			write(pipe, &reference_len, sizeof(reference_len));
+			printf("Metdata written. Writing reference\n");
+			write(pipe, reference, reference_len);
+			printf("Reference written. Updating shared state to ready\n");
+			//Set state to waiting for recorder program
+			sharedMemory->recordingState = RECORDING_WANTED | RECORDING_RUNNING;
+		}
+		if((sharedMemory->recordingState & RECORDING_RUNNING) == RECORDING_RUNNING){
+			if(sharedMemory->recordingState == RECORDING_RUNNING){//Without RECORDING_WANTED
+				sharedMemory->recordingState = RECORDING_STOPPED;
+			}
+			int bSize = lenOut + 3;
+			write(pipe, &bSize, sizeof(bSize));
+			write(pipe, compressed, bSize);
+		}
+		if(sharedMemory->recordingState == RECORDING_STOPPED){
+			char* nonsense = "\0";
+			write(pipe, nonsense, 1);
+		}
+		if(sharedMemory->recordingState == 0 && pipe != 0){
+			close(pipe);
+			pipe = 0;
+		}
+
 		//Update statistics for the local user interface
 		long now = get_micros();
-		long double packets = 1000000.0 / (now - last);
+		long double deltaSecs = (now - last) / 1000000.0;
+		sharedMemory->packets = 1.0 / deltaSecs;
 		last = now;
-		updateShm(shMem, 1, packets, simTime, chk);
+		sharedMemory->referenceLength = chk;
+		sharedMemory->connected = 1;
+		sharedMemory->simulationTime = simTime;
 	}
 	close(mfd);
 	shutdown(socket_out, SHUT_RDWR);

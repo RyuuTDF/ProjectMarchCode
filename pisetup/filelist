@@ -1,14 +1,29 @@
 # List of config files to be modified, appended to or to be replaced by new values
+#
+# Modifications to existing files
 append	bashrc	/home/pi/.bashrc
 append	dhcpcd.conf	/etc/dhcpcd.conf
 modify	hostapd	/etc/default/hostapd
 modify	interfaces	/etc/network/interfaces
 modify	sysctl.conf	/etc/sysctl.conf
 replace	dnsmasq.conf	/etc/dnsmasq.conf
+# Add new service definition for dnsmasq in local directory
 replace	dnsmasq.service	/etc/systemd/system/dnsmasq.service
+# Software written for Project March
 replace	forwarder	/opt/exo/forwarder
 replace	reference	/opt/exo/reference
+replace	recorder	/opt/exo/recorder
+replace	convert	/opt/exo/convert
+replace	http.py	/opt/exo/http.py
+# HTTP has some other required files
+replace	static/bootstrap.css	/opt/exo/static/bootstrap.css
+replace	static/bootstrap.js	/opt/exo/static/bootstrap.js
+replace	static/jquery-1.11.0.js	/opt/exo/static/jquery-1.11.0.js
+replace	templates/index.html	/opt/exo/templates/index.html
+# Own service definitions
 replace	forwarder.service	/etc/systemd/system/forwarder.service
 replace	reference.service	/etc/systemd/system/reference.service
+replace	http.service	/etc/systemd/system/http.service
+# Misc
 replace	hostapd.conf	/etc/hostapd/hostapd.conf
 replace	statuscli.py	/home/pi/statuscli.py

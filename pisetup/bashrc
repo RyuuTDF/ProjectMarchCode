@@ -1,2 +1,2 @@
 # To be appended to .bashrc - Auto run status cli on auto-login
-~/statuscli.py
+sudo ~/statuscli.py
