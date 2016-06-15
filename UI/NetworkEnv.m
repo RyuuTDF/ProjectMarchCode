@@ -51,6 +51,7 @@ classdef NetworkEnv < Env
                 % 1 = reference packet
                 % 2 = delta packet
                 obj.hasNewData = true;
+
                 packetType = packet(end);
                 
                 if packetType == 1                    
@@ -79,7 +80,6 @@ classdef NetworkEnv < Env
             
             x = [packet(end-2) packet(end-1)];
             packetChecksum = typecast(uint8(x), 'uint16');
-          
             %Check if the GUI has the correct reference packet
             if packetChecksum == obj.referenceChecksum
             	%Decompress and deserialize the data.
@@ -91,7 +91,6 @@ classdef NetworkEnv < Env
                 
                 temp = packetData(1);
                 time = temp{1,1};
-                
                 %Only accept later send delta packets
                 if obj.simulationTime < time
                     obj.simulationTime = time;
