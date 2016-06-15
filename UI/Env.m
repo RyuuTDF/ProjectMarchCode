@@ -21,7 +21,5 @@ classdef Env
 	methods
         function obj = updateData(obj)
         end
-        
-
     end
 end

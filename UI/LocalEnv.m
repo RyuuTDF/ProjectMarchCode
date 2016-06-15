@@ -17,6 +17,7 @@ classdef LocalEnv < Env
             end
         end
         
+        
         % Function: updateData
         % Functionality: Permutate the current data for test purposes.
         function obj = updateData(obj)
