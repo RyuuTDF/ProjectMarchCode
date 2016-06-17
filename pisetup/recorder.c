@@ -7,7 +7,6 @@
  *      Author: ruben
  */
 
-
 #include <stdio.h> //printf
 #include <stdlib.h> //exit(0);
 #include <string.h>
@@ -34,12 +33,12 @@ int main(int argc, char *argv[]) {
 		perror("mmap");
 		return 1;
 	}
-	if((sharedMemory->recordingState & RECORDING_WANTED) != RECORDING_WANTED){
+	if ((sharedMemory->recordingState & RECORDING_WANTED) != RECORDING_WANTED) {
 		printf("Recorder started without request. Confused....\n");
 		return 1;
 	}
 	sharedMemory->softwareState = sharedMemory->softwareState | SW_RECORDER;
-	
+
 	//Open the output file
 	localtime_r(&sharedMemory->recorderStartTime, &time);
 	strftime(fileNamePart, 32, "%Y%m%d%H%M%S.rec", &time);
@@ -50,24 +49,26 @@ int main(int argc, char *argv[]) {
 	char pipename[sizeof(char) * strlen(TMP_DIR) + 5];
 	sprintf(pipename, "%s%lx", TMP_DIR, sharedMemory->recorderStartTime);
 	mkfifo(pipename, 0600);
-	sharedMemory->recordingState = (sharedMemory->recordingState | RECORDING_STOPPED);
+	sharedMemory->recordingState = (sharedMemory->recordingState
+			| RECORDING_STOPPED);
 
-	pipe = open(pipename, O_RDONLY);//BLOCKING call!
+	pipe = open(pipename, O_RDONLY); //BLOCKING call!
 	//Receive loop
-	while ((sharedMemory->recordingState != RECORDING_STOPPED) && (sharedMemory->recordingState!=0)) {
+	while ((sharedMemory->recordingState != RECORDING_STOPPED)
+			&& (sharedMemory->recordingState != 0)) {
 		//try to receive some data, this is a blocking call
 		if ((recv_len = read(pipe, buffer, BUFLEN)) == -1) {
 			die("Receiving data failed.\n");
 		}
 		write(outputFile, buffer, recv_len);
 	}
-	if(sharedMemory->recordingState==0){
+	if (sharedMemory->recordingState == 0) {
 		printf("Recording stopped, state was unexpected!\n");
 	}
 	close(outputFile);
 	close(pipe);
 	sharedMemory->recordingState = 0;
-	if((sharedMemory->softwareState & SW_RECORDER) == SW_RECORDER)
+	if ((sharedMemory->softwareState & SW_RECORDER) == SW_RECORDER)
 		sharedMemory->softwareState -= SW_RECORDER;
 	close(mmapFile);
 	return 0;

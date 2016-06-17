@@ -33,15 +33,15 @@ def main(stdscr):
 		# Only update when new data is present
 		if connected != new_c or packetRate != new_p or new_t != simulationTime or software != new_s or recording != new_t :
 			# Add a temperature readout to the data
-			p = subprocess.Popen(['/opt/vc/bin/vcgencmd', 'measure_temp'], stdout=subprocess.PIPE, 
+			p = subprocess.Popen(['/opt/vc/bin/vcgencmd', 'measure_temp'], stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE)
 			out, err = p.communicate()
 			# Display the statistics in a table on the screen
-			text = tabulate([[new_c, new_p, new_t, out[5:], new_s, new_r]], headers=['Connected','Packets/s', 'Sim time', 'Temperature', 'Software', 'Recorder'])
+			text = tabulate([[new_c, new_p, new_t, out[5:], new_s, new_r]], headers=['Connected', 'Packets/s', 'Sim time', 'Temperature', 'Software', 'Recorder'])
 			stdscr.addstr(0, 0, text)
 			stdscr.refresh()
 			recording = new_t
-			software= new_s
+			software = new_s
 			connected = new_c
 			packetRate = new_p
 			simulationTime = new_t

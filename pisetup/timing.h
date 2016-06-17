@@ -20,4 +20,4 @@ static long get_micros() {
 }
 
 #endif /* TIMING_H_ */
- 
+

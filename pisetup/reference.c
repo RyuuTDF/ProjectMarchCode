@@ -28,16 +28,18 @@
 /** 
  * sendReference: send a reference packet to a client who requested one
  */
-void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sharedMemory, int socket){
+void sendReference(short chk, struct sockaddr_in si_out,
+		struct SharedMemory* sharedMemory, int socket) {
 	unsigned char compressed[BUFLEN];
-	if(chk != sharedMemory->referenceLength){
+	if (chk != sharedMemory->referenceLength) {
 		printf("Request for sequence not in use by forwarder\n");
 		return;
 	}
 	//Check existence of a stored packet
 	char filename[sizeof(char) * strlen(TMP_DIR) + 5];
 	sprintf(filename, "%s%x", TMP_DIR, chk);
-	printf("Request from %s for file %s\n", inet_ntoa(si_out.sin_addr), filename);
+	printf("Request from %s for file %s\n", inet_ntoa(si_out.sin_addr),
+			filename);
 	if (access(filename, R_OK) != -1) {
 		//Requested packet is stored, so read it...
 		int fd = open(filename, O_RDONLY);
@@ -61,13 +63,14 @@ void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sh
 /**
  * startRecording: Prepare the system for recording
  */
-void startRecording(SharedMemory* sharedMemory, long int startTime){
+void startRecording(SharedMemory* sharedMemory, long int startTime) {
 	//Make sure that there is not an already running recording
-	if((sharedMemory->recordingState & RECORDING_RUNNING) != RECORDING_RUNNING){
-		sharedMemory->recordingState = (sharedMemory->recordingState | RECORDING_WANTED);
+	if ((sharedMemory->recordingState & RECORDING_RUNNING) != RECORDING_RUNNING) {
+		sharedMemory->recordingState = (sharedMemory->recordingState
+				| RECORDING_WANTED);
 		sharedMemory->recorderStartTime = startTime;
 		//Execute recorder tool in separate process
-		if(fork() == 0){
+		if (fork() == 0) {
 			execl("/opt/exo/recorder", "/opt/exo/recorder", NULL);
 			exit(0);
 		}
@@ -96,27 +99,29 @@ int main(int argc, char *argv[]) {
 		//try to receive some data, this is a blocking call
 		if ((recv_len = recvfrom(socket_in, buffer, BUFLEN, 0,
 				(struct sockaddr *) &si_other, &si_len)) == -1) {
-			sharedMemory->softwareState = sharedMemory->softwareState & !SW_REFERENCE;
+			sharedMemory->softwareState = sharedMemory->softwareState
+					& !SW_REFERENCE;
 			die("Receiving data failed.\n");
 		}
 		//Multiple commands possible, cmd will contain the requested action
 		memcpy(&cmd, buffer, 2);
 		printf("cmd: %i\n", cmd);
-		if(cmd == 1){
+		if (cmd == 1) {
 			//Send reference packet
 			unsigned short chk;
 			memcpy(&chk, buffer + 2, 2);
 			si_out.sin_addr = si_other.sin_addr;
 			sendReference(chk, si_out, sharedMemory, socket_out);
-		}else if(cmd == 2){
+		} else if (cmd == 2) {
 			//Start recording
 			long int startTime;
 			memcpy(&startTime, buffer + 2, 4);
 			startRecording(sharedMemory, startTime);
-		}else if(cmd == 3){
+		} else if (cmd == 3) {
 			//Stop recording. The recorder service will get the changed state in its main loop
-			sharedMemory->recordingState = (sharedMemory->recordingState & !RECORDING_WANTED);
-		}else{
+			sharedMemory->recordingState = (sharedMemory->recordingState
+					& !RECORDING_WANTED);
+		} else {
 			printf("Request for unknown command %i", cmd);
 		}
 

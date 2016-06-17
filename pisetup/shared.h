@@ -37,21 +37,22 @@ typedef struct __attribute__((__packed__)) SharedMemory {
 	long int recorderStartTime; //4B [26-29]
 } SharedMemory;
 
-int openShm(int* fd, struct SharedMemory** sharedMemPointer, int mapProt, int fileFlags){
+int openShm(int* fd, struct SharedMemory** sharedMemPointer, int mapProt,
+		int fileFlags) {
 	//Open the memory map with requested flags
 	*fd = open(MMAPFILE, fileFlags);
 	if (*fd == -1) {
 		perror("open");
 		return 1;
 	}
-	if((fileFlags & O_CREAT) == O_CREAT){
+	if ((fileFlags & O_CREAT) == O_CREAT) {
 		//Request to open a new file. Fill this new file with zeroes
 		char mt[getpagesize()];
 		//Write data with the size of one page to initialise the file and memory
 		write(*fd, mt, getpagesize());
 	}
-	*sharedMemPointer = mmap((caddr_t) 0, getpagesize(), mapProt, MAP_SHARED, *fd,
-			0);
+	*sharedMemPointer = mmap((caddr_t) 0, getpagesize(), mapProt, MAP_SHARED,
+			*fd, 0);
 	if (*sharedMemPointer == MAP_FAILED) {
 		perror("mmap");
 		return 1;
@@ -59,7 +60,7 @@ int openShm(int* fd, struct SharedMemory** sharedMemPointer, int mapProt, int fi
 	return 0;
 }
 
-typedef struct __attribute__((__packed__)) PacketFooter{
+typedef struct __attribute__((__packed__)) PacketFooter {
 	unsigned long recorderStartTime; //4B
 	int recorderState; //4B
 	int softwareState; //4B

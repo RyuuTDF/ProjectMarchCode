@@ -28,7 +28,8 @@
 /**
  * compresses buffer in (size sz_in) to buffer out (max size sz_out). Returns compressed size
  */
-int compressBuffer(unsigned char* out, const int sz_out, unsigned char* in, const int sz_in){
+int compressBuffer(unsigned char* out, const int sz_out, unsigned char* in,
+		const int sz_in) {
 	z_stream strm;
 	strm.zalloc = Z_NULL;
 	strm.zfree = Z_NULL;
@@ -51,7 +52,8 @@ int compressBuffer(unsigned char* out, const int sz_out, unsigned char* in, cons
 /**
  * Converts a received packet into the format to be sent to a client.
  */
-int buildPacket(SharedMemory* sharedMemory, unsigned char* buffer_in, const int sz_in, unsigned char* buffer_out, unsigned char* reference){
+int buildPacket(SharedMemory* sharedMemory, unsigned char* buffer_in,
+		const int sz_in, unsigned char* buffer_out, unsigned char* reference) {
 	char type;
 	//Append statistics and status to buffer
 	struct PacketFooter footer;
@@ -62,7 +64,8 @@ int buildPacket(SharedMemory* sharedMemory, unsigned char* buffer_in, const int 
 	memcpy(buffer_in + sz_in, &footer, footer.strSize);
 	if (sz_in != sharedMemory->referenceLength) {
 		//New reference packet
-		printf("New reference %d != %d\n", sz_in, sharedMemory->referenceLength);
+		printf("New reference %d != %d\n", sz_in,
+				sharedMemory->referenceLength);
 		memcpy(reference, buffer_in, sz_in);
 		//Remove the temporary file containing the previous reference packet
 		char filename[sizeof(char) * strlen(TMP_DIR) + 5];
@@ -81,17 +84,18 @@ int buildPacket(SharedMemory* sharedMemory, unsigned char* buffer_in, const int 
 		type = 2;
 	}
 	//Compress the buffer to improve the performance of the wireless network
-	int lenOut = compressBuffer(buffer_out, BUFLEN, buffer_in, sz_in + footer.strSize);
+	int lenOut = compressBuffer(buffer_out, BUFLEN, buffer_in,
+			sz_in + footer.strSize);
 	//Add a footer to the data to be sent, in this way the receiver can find out what to do
 	unsigned short chk = sz_in;
 	memcpy(buffer_out + lenOut, &chk, 2);
 	buffer_out[lenOut + 2] = type;
-	lenOut += 3;//Reflect the added bytes in the size
+	lenOut += 3;		//Reflect the added bytes in the size
 	//If a new reference packet is generated, store this for the reference server program
 	if (type == 1) {
 		char filename[sizeof(char) * strlen(TMP_DIR) + 5];
 		sprintf(filename, "%s%x", TMP_DIR, sz_in);
-		unlink(filename);//Delete file first if it is already present somehow
+		unlink(filename);	//Delete file first if it is already present somehow
 		int fd = open(filename, O_WRONLY | O_CREAT);
 		write(fd, buffer_out, lenOut);
 		close(fd);
@@ -102,7 +106,8 @@ int buildPacket(SharedMemory* sharedMemory, unsigned char* buffer_in, const int 
 /**
  * Open the recording pipe and start writing to it
  */
-int startRecording(const long int time, const unsigned char* reference, const int reference_len){
+int startRecording(const long int time, const unsigned char* reference,
+		const int reference_len) {
 	//Open recording pipe
 	char filename[sizeof(char) * strlen(TMP_DIR) + 9];
 	sprintf(filename, "%s%lx", TMP_DIR, time);
@@ -116,26 +121,27 @@ int startRecording(const long int time, const unsigned char* reference, const in
 /**
  * Check recording state and handle accordingly
  */
-void handleRecording(short* state, const long int time, int* pipe, const unsigned char* buffer,
-		const int buf_len, const unsigned char* reference, const int reference_len){
-	if(*state == (RECORDING_WANTED | RECORDING_STOPPED)){
+void handleRecording(short* state, const long int time, int* pipe,
+		const unsigned char* buffer, const int buf_len,
+		const unsigned char* reference, const int reference_len) {
+	if (*state == (RECORDING_WANTED | RECORDING_STOPPED)) {
 		*pipe = startRecording(time, reference, reference_len);
 		//Set state to waiting for recorder program
 		*state = RECORDING_WANTED | RECORDING_RUNNING;
 	}
-	if((*state & RECORDING_RUNNING) == RECORDING_RUNNING){
-		if(*state == RECORDING_RUNNING){//Without RECORDING_WANTED
+	if ((*state & RECORDING_RUNNING) == RECORDING_RUNNING) {
+		if (*state == RECORDING_RUNNING) {	//Without RECORDING_WANTED
 			*state = RECORDING_STOPPED;
 		}
 		int bSize = buf_len;
 		write(*pipe, &bSize, sizeof(bSize));
 		write(*pipe, buffer, bSize);
 	}
-	if(*state == RECORDING_STOPPED){
+	if (*state == RECORDING_STOPPED) {
 		char* nonsense = "\0";
 		write(*pipe, nonsense, 1);
 	}
-	if(*state == 0 && *pipe != 0){
+	if (*state == 0 && *pipe != 0) {
 		close(*pipe);
 		pipe = 0;
 	}
@@ -177,11 +183,14 @@ int main(int argc, char *argv[]) {
 		//Get the simulation time from the buffer before modifications
 		long double simTime;
 		memcpy(&simTime, buf + 1, 8);
-		int lenOut = buildPacket(sharedMemory, buf, recv_len, compressed, reference);
+		int lenOut = buildPacket(sharedMemory, buf, recv_len, compressed,
+				reference);
 		//send the message
-		sendto(socket_out, compressed, lenOut, 0, (struct sockaddr *) &si_out, slen);
-		handleRecording(&sharedMemory->recordingState, sharedMemory->recorderStartTime,
-				&pipe, compressed, lenOut, reference, sharedMemory->referenceLength);
+		sendto(socket_out, compressed, lenOut, 0, (struct sockaddr *) &si_out,
+				slen);
+		handleRecording(&sharedMemory->recordingState,
+				sharedMemory->recorderStartTime, &pipe, compressed, lenOut,
+				reference, sharedMemory->referenceLength);
 		//Update statistics for the local user interface
 		long now = get_micros();
 		long double deltaSecs = (now - last) / 1000000.0;

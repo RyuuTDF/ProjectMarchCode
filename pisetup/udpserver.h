@@ -12,7 +12,7 @@
 #include <sys/socket.h>
 #include <string.h> //memset
 
-void siFormat(struct sockaddr_in* si, const char* address, const short port){
+void siFormat(struct sockaddr_in* si, const char* address, const short port) {
 	memset((char *) si, 0, sizeof(*si));
 	si->sin_family = AF_INET;
 	si->sin_port = htons(port);
@@ -22,7 +22,7 @@ void siFormat(struct sockaddr_in* si, const char* address, const short port){
 	}
 }
 
-int openUdpListener(const char* address, const short port){
+int openUdpListener(const char* address, const short port) {
 	int s_in;
 	struct sockaddr_in si_me;
 	//create a UDP listening socket
@@ -39,17 +39,16 @@ int openUdpListener(const char* address, const short port){
 	return s_in;
 }
 
-int openUdpSender(const int broadcast){
+int openUdpSender(const int broadcast) {
 	int socket_out;
 	if ((socket_out = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
 		die("socket (out)");
 	}
-	if(broadcast){
+	if (broadcast) {
 		setsockopt(socket_out, SOL_SOCKET, SO_BROADCAST, &broadcast,
 				sizeof(broadcast));
 	}
 	return socket_out;
 }
-
 
 #endif /* UDPSERVER_H_ */
