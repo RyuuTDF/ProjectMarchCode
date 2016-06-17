@@ -26,10 +26,8 @@ configuring all the software and compiling our programs written in C. Apart from
  - forwarder.c - The main program: it will forward data sent by the simulink model on the ethernet interface to the GUI on the other side on the wireless interface
  - reference.c - Program to re-send the first (reference) packet to a client that stepped in later
  - statuscli.py - Script displaying some statistics on a display (when not running headless)
+ - recorder.c - A tool to store received packets in a binary recording file
+ - convert.c - Converts the binary file generatesd by the recorder to a more readable tab separated file
+ - http.py - A very basic webserver that lists recordings and provides download functionality for converted recording files
 
-Flags used during compilation of the C programs: -lz (forwarder.c only) -D_BSD_SOURCE -Wall -std=c11
-
-PerformanceTests
---------------
-This folder contains programs written in C to collect metrics on the performance of the network. At the moment of writing, the networkdelay_server program is incompatible with 
-the forwarder running on the Raspberry Pi. These programs use the same compilation flags as mentioned above (and with the same exception mentioned there).
+Flags used during compilation of the C programs: -lz (forwarder.c and convert.c) -D_BSD_SOURCE -Wall -std=c11
