@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# statuscli - Displays some basic statistics of the running software on an attached display
+
 import mmap
 import os
 import struct
@@ -10,7 +12,7 @@ import curses
 import subprocess
 
 def main(stdscr):
-	# Open the file for reading
+	# Open the me memory map that the C programs use
 	fd = os.open('/run/exoshm', os.O_RDONLY)
 	
 	# Memory map the file

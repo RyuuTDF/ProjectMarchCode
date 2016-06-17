@@ -25,6 +25,9 @@
 #define PORT_IN 25001   //The port on which to receive requests
 #define PORT_OUT 25000   //The port on which to send data
 
+/** 
+ * sendReference: send a reference packet to a client who requested one
+ */
 void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sharedMemory, int socket){
 	unsigned char compressed[BUFLEN];
 	if(chk != sharedMemory->referenceLength){
@@ -55,6 +58,9 @@ void sendReference(short chk, struct sockaddr_in si_out, struct SharedMemory* sh
 	}
 }
 
+/**
+ * startRecording: Prepare the system for recording
+ */
 void startRecording(SharedMemory* sharedMemory, long int startTime){
 	//Make sure that there is not an already running recording
 	if((sharedMemory->recordingState & RECORDING_RUNNING) != RECORDING_RUNNING){

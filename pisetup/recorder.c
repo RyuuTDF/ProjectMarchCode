@@ -1,5 +1,7 @@
 /*
  * recorder.c
+ * 
+ * Writes the data for a recording to the designated file
  *
  *  Created on: 9 Jun 2016
  *      Author: ruben
@@ -37,12 +39,14 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	sharedMemory->softwareState = sharedMemory->softwareState | SW_RECORDER;
-
+	
+	//Open the output file
 	localtime_r(&sharedMemory->recorderStartTime, &time);
 	strftime(fileNamePart, 32, "%Y%m%d%H%M%S.rec", &time);
 	sprintf(filename, "%s%s", RECORDING_DIR, fileNamePart);
 	outputFile = open(filename, O_RDWR | O_CREAT);
 
+	//Open the named pipe
 	char pipename[sizeof(char) * strlen(TMP_DIR) + 5];
 	sprintf(pipename, "%s%lx", TMP_DIR, sharedMemory->recorderStartTime);
 	mkfifo(pipename, 0600);

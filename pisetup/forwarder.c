@@ -1,5 +1,7 @@
 /*
  * forwarder.c
+ * 
+ * UDP server that will forward packets received to any connected client on the wireless interface
  *
  *  Created on: 25 May 2016
  *      Author: ruben

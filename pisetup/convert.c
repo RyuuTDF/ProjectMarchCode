@@ -1,5 +1,7 @@
 /*
  * convert.c
+ * 
+ * Converts a binary created by recorder to a tab separated file
  *
  *  Created on: 14 Jun 2016
  *      Author: ruben
@@ -66,11 +68,13 @@ int main(int argc, char *argv[]){
 		printf("Unreadable or empty file (ref: %i, sz: %i, r: %i)\n", pSize , sizeof(pSize), nr);
 		return 1;
 	}
+	//Read the reference packet from the file
 	if(read(inFile, reference, pSize) != pSize){
 		printf("Unexpected file size\n");
 		return 1;
 	}
 	short reference_chk = pSize;
+	//Build and write the header of the tab separated file
 	if(testmode){
 		written = sprintf(bufferOut, "time\ti\n");
 	}else{
@@ -94,6 +98,7 @@ int main(int argc, char *argv[]){
 	else
 		write(outFile, bufferOut, written);
 	if(verbose) printf("Header written\n");
+	//Read all data packets
 	while(read(inFile, &pSize, sizeof(pSize)) == sizeof(pSize)){
 		//Special case: end of file might contain zeroes
 		if(pSize == 0)
