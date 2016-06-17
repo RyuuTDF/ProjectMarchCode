@@ -232,7 +232,7 @@ classdef SimpleGui <handle
             close all;
             
             if(nargin >0)
-                gui.setProperties(sensorData ,config);              
+                gui.setProperties(sensorData ,config);
                 % calls the figure object and defines some margins
                 gui.root = figure('Position',config.figPos , 'MenuBar', 'None'...
                     ,'CloseRequestFcn',@figDeleteCallback,'Resize','off');
@@ -266,8 +266,8 @@ classdef SimpleGui <handle
                 delete(timerfindall());
                 delete(gcf);
             end
-        end    
-            
+        end
+        
         % Function: generateTable
         % Functionality: creates tables used to show data
         function generateTables(gui,divParams)
@@ -277,7 +277,7 @@ classdef SimpleGui <handle
             generatePropTable();
             generateUCTabke()
             % Function: generateImpTable
-            % Functionality: generates table and properties for the table 
+            % Functionality: generates table and properties for the table
             % which shows the metadata of the important sensors
             function generateImpTable()
                 gui.impSensorsLabel = uitable('Parent', gui.root,...
@@ -290,15 +290,15 @@ classdef SimpleGui <handle
                 % generates table and properties for the table which shows the
                 % sensor data, is a seperate table because of rendering issues
                 gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
-
-
+                
+                
                 gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
                     gui.data(gui.importantSensors,3));
                 gui.impSensorsData.ColumnFormat = {'shortG'};
                 gui.impSensorsData.ColumnWidth = {150};
                 gui.impSensorsData.ColumnName = {'Value'};
                 gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);
-
+                
                 % table which is used to toggle the SI-prefixes of the sensors
                 SiTable = cell(size(gui.importantSensors,2),1);
                 SiTable(:)  = {'none'};
@@ -308,7 +308,7 @@ classdef SimpleGui <handle
                 gui.convTable.ColumnEditable = true;
                 gui.convTable.CellEditCallback = @cellEditCallback;
                 gui.convTable.ColumnName = {'SI'};
-            end    
+            end
             % Function: generateImpCheck
             % Functionality: constructs boolean representation of the important sensors
             function generateImpCheck()
@@ -329,13 +329,13 @@ classdef SimpleGui <handle
                     'ColumnEditable',[false false true] ...
                     );
                 gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
-
+                
                 %toggle for showing the all sensors table
                 showAll = uicontrol('Style','checkbox','Callback',@toggleAll,...
                     'Position',[divParams(3)-350 625 150 25],...
                     'String','Show all sensors table'...
                     );
-            end           
+            end
             % Function: generatePropTable
             % Functionality: table which shows the properties of the currently selected
             % sensor
@@ -391,7 +391,7 @@ classdef SimpleGui <handle
                     formulaField.String = func2str(sensProps.transformation);
                     gui.selectedSensor = sensIdx;
                 end
-            end            
+            end
             % Function: editProp
             % Functionality :callback function which saves the edited
             % properties to the global list when a property is edited
@@ -420,7 +420,7 @@ classdef SimpleGui <handle
                 % saves the changes
                 gui.sensorProperties(gui.selectedSensor) = {sensProps};
                 gui.saveProperties();
-            end          
+            end
             % Function: cellEditCallback
             % Functionality: callback function for selecting another
             % SI-prefix to correctlyn transform the data
@@ -500,21 +500,21 @@ classdef SimpleGui <handle
         % Function: setProperties
         % Functinality: sets the gui properties
         function setProperties(gui ,sensorData ,config)
-                gui.data=sensorData;
-                if(strcmp(config.env,'local'))
-                    gui.data = sensorData.datamatrix;
-                end
-                gui.sensorLabel = gui.data(:,1);
-                gui.sensorTabel = gui.data(:,2);
-                gui.sensorMin = cell2mat(gui.data(:,3));
-                gui.sensorMax = cell2mat(gui.data(:,4));
-                gui.importantSensors = config.impSens;
-                gui.sensorProperties = cell(size(gui.data,1),1);
-                gui.updateRate = config.updateFreq;
-                gui.graphRate = config.graphUpdateRate;
-                gui.impRate = config.impUpdateRate;
-                gui.allRate = config.allUpdateRate;
+            gui.data=sensorData;
+            if(strcmp(config.env,'local'))
+                gui.data = sensorData.datamatrix;
             end
+            gui.sensorLabel = gui.data(:,1);
+            gui.sensorTabel = gui.data(:,2);
+            gui.sensorMin = cell2mat(gui.data(:,3));
+            gui.sensorMax = cell2mat(gui.data(:,4));
+            gui.importantSensors = config.impSens;
+            gui.sensorProperties = cell(size(gui.data,1),1);
+            gui.updateRate = config.updateFreq;
+            gui.graphRate = config.graphUpdateRate;
+            gui.impRate = config.impUpdateRate;
+            gui.allRate = config.allUpdateRate;
+        end
         % Function: generateGraphs
         % Functionality: creates the graphs
         function generateGraphs(gui, naxes,divParams)
@@ -525,7 +525,7 @@ classdef SimpleGui <handle
             gui.graph = genGraph(1);
             gui.graph2 = genGraph(2);
             gui.ddg1 = genDDG(1);
-            gui.ddg2 = genDDG(2);  
+            gui.ddg2 = genDDG(2);
             
             if(naxes  > 2 )
                 gui.graph3 = genGraph(3);
@@ -902,7 +902,7 @@ classdef SimpleGui <handle
                     otherwise
                         siPrefix='none';
                 end
-                gui.convTable.Data{tableIdx} = siPrefix;                
+                gui.convTable.Data{tableIdx} = siPrefix;
                 gui.transformSiData(tableIdx,siPrefix);
             end
         end
