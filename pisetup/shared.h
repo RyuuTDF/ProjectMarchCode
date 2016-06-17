@@ -10,7 +10,7 @@
 
 #include <sys/mman.h> //Shared memory
 #include <sys/types.h>
-#include <stdlib.h> //exit(0);
+#include <stdlib.h>
 #include <unistd.h>
 
 #define MMAPFILE "/run/exoshm"

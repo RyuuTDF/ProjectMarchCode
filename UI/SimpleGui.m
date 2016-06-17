@@ -87,11 +87,12 @@ classdef SimpleGui <handle
             else
                 env = NetworkEnv();
             end
-            
             while isempty(env.currentData)
                 env = updateData(env);
             end
             
+            % If the interface is set to gui, render the gui and
+            % corresponding elements
             if(strcmp(config.interface,'gui'))
                 gui= SimpleGui(env.currentData,config);
                 updateCheck = uicontrol('Style','checkbox','Callback',@updateC,...
@@ -103,12 +104,13 @@ classdef SimpleGui <handle
                     'Position',[(gui.root.Position(3)*0.8)-350 600 150 25],...
                     'String','Toggle Recording'...
                     );
+                % If the interface is not set to gui, output data directly
+                % to console
             else
                 while true
                     env = updateData(env);
-                    
                     if(env.hasNewData)
-                        x = env.currentData
+                        data = env.currentData
                     else
                         pause(0.05);
                     end
@@ -119,7 +121,7 @@ classdef SimpleGui <handle
             % Function: updateC
             % Functionality: callback function for the update checkbox
             % updates GUI when the checkbox is marked
-            function updateC(hObject, eventdata, handles)
+            function updateC(hObject, ~, ~)
                 gui.updateFlag = get(hObject,'Value') == get(hObject,'Max');
                 if (get(hObject,'Value') == get(hObject,'Max'))
                     tic;
@@ -129,17 +131,12 @@ classdef SimpleGui <handle
                 cnt =0;
                 
                 while gui.updateFlag;
-                    allUpdate= gui.allRate;
-                    impUpdate= gui.impRate;
-                    graphUpdate = gui.graphRate;
-                    
                     cnt = cnt+1;
-                    currUpdateRate = cnt/toc;
                     env = updateData(env);
                     
                     if(env.hasNewData)
-                        gui.update(env.currentData, mod(cnt,allUpdate) ==0,...
-                            mod(cnt,impUpdate)==0,mod(cnt,graphUpdate)==0);
+                        gui.update(env.currentData, mod(cnt,gui.allRate) ==0,...
+                            mod(cnt,gui.impRate)==0,mod(cnt,gui.graphRate)==0);
                     else
                         pause(gui.updateRate);
                     end
@@ -148,14 +145,12 @@ classdef SimpleGui <handle
             
             % Function: toggleRecording
             % Functionality: toggles the data recording on the PI
-            function toggleRecording(hObject, eventdata, handles)
+            function toggleRecording(hObject, ~, ~)
                 record = get(hObject,'Value') == get(hObject,'Max');
                 if(~strcmp(config.env,'local'))
                     if(record)
-                        %start recording
                         env.startRecording();
                     else
-                        %end recording
                         env.stopRecording();
                     end
                 end
@@ -201,8 +196,6 @@ classdef SimpleGui <handle
                 case 'l'
                     config.figPos=config.figPosL;
                     config.naxes = 4;
-                    %                     config.font = config.fontL;
-                    %                     config.impTabWidth = config.impTabWidthL;
             end
         end
         
@@ -215,12 +208,13 @@ classdef SimpleGui <handle
         
         % Function: shortenStringArr
         % Functionality: ensures all strings in arr have a length of n
-        
         function arr = shortenStringArr(arr,n)
             arr = cellfun(@(x)SimpleGui.shortenString(x,n),arr...
                 ,'UniformOutput',false);
         end
         
+        % Function: shortenString
+        % Functionality: ensures the length of str is at most n
         function str =  shortenString(str,n)
             if(size(str,2)>n)
                 str = str(1:n);
@@ -235,27 +229,10 @@ classdef SimpleGui <handle
         % Functionality: constructor
         function gui = SimpleGui(sensorData, config)
             gui.config = config;
-            importantSensors = config.impSens;
-            %r emoves all open figures for a clean slate
             close all;
+            
             if(nargin >0)
-                % sets the data properties
-                gui.data=sensorData;
-                if(strcmp(config.env,'local'))
-                    gui.data = sensorData.datamatrix;
-                end
-                gui.sensorLabel = gui.data(:,1);
-                gui.sensorTabel = gui.data(:,2);
-                gui.sensorMin = cell2mat(gui.data(:,3));
-                gui.sensorMax = cell2mat(gui.data(:,4));
-                gui.importantSensors = importantSensors;
-                gui.sensorProperties = cell(size(gui.data,1),1);
-                gui.updateRate = config.updateFreq;
-                gui.graphRate = config.graphUpdateRate;
-                gui.impRate = config.impUpdateRate;
-                gui.allRate = config.allUpdateRate;
-                
-                
+                gui.setProperties(sensorData ,config);              
                 % calls the figure object and defines some margins
                 gui.root = figure('Position',config.figPos , 'MenuBar', 'None'...
                     ,'CloseRequestFcn',@figDeleteCallback,'Resize','off');
@@ -280,107 +257,118 @@ classdef SimpleGui <handle
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
                 gui.loadProperties();
-                
-                
             end
             
             % Function: figDeleteCallback
             % Functionality: callback function when figure is closed;
             % used to delete the timeout timer
-            function figDeleteCallback(src,callbackdata)
+            function figDeleteCallback(~,~)
                 delete(timerfindall());
                 delete(gcf);
             end
-        end
-        
+        end    
+            
         % Function: generateTable
         % Functionality: creates tables used to show data
         function generateTables(gui,divParams)
-            % generates table and properties for the table which shows the
-            % metadata of the important sensors
-            
-            gui.impSensorsLabel = uitable('Parent', gui.root,...
-                'Position', [25 divParams(4)+75 divParams(3)+25 divParams(4)-75],...
-                'Data',gui.data(gui.importantSensors,1:2),...
-                'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', gui.config.font,...
-                'ColumnWidth',gui.config.impTabWidth ,...
-                'RowName',[],'ColumnName',{'Label', 'Type'}...
-                );
-            % generates table and properties for the table which shows the
-            % sensor data, is a seperate table because of rendering issues
-            gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
-            
-            
-            gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
-                gui.data(gui.importantSensors,3));
-            gui.impSensorsData.ColumnFormat = {'shortG'};
-            gui.impSensorsData.ColumnWidth = {150};
-            gui.impSensorsData.ColumnName = {'Value'};
-            gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);
-            
-            % table which is used to toggle the SI-prefixes of the sensors
-            SiTable = cell(size(gui.importantSensors,2),1);
-            SiTable(:)  = {'none'};
-            gui.convTable = gui.concatUItab(gui.impSensorsData, SiTable);
-            gui.convTable.Visible = 'on';
-            gui.convTable.ColumnFormat = {gui.siPrefixes};
-            gui.convTable.ColumnEditable = [true];
-            gui.convTable.CellEditCallback = @cellEditCallback;
-            gui.convTable.ColumnName = {'SI'};
-            
-            % constructs boolean representation of the important sensors
-            gui.impSensCheck = false(size(gui.data,1),1);
-            gui.impSensCheck(gui.importantSensors) = true;
-            gui.impSensCheck = num2cell(gui.impSensCheck);
-            
-            % table which shows all sensors, starts hidden
-            gui.allSensors = uitable('Parent', gui.root, 'Position', ...
-                [divParams(3)+25 0 divParams(5) divParams(6) ],...
-                'Data',[gui.data(:,[1 3])],'RowName',[],...
-                'ColumnName',[],'BackgroundColor', [0.9 0.9 1 ],...
-                'ColumnWidth', {100,75}, 'Visible','off',...
-                'CellSelectionCallback',@showProperties...
-                ,'ColumnFormat', {'char','numeric','logical'},...
-                'ColumnEditable',[false false true] ...
-                );
-            gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
-            
-            %toggle for showing the all sensors table
-            showAll = uicontrol('Style','checkbox','Callback',@toggleAll,...
-                'Position',[divParams(3)-350 625 150 25],...
-                'String','Show all sensors table'...
-                );
-            
-            %table which shows the properties of the currently selected
-            %sensor
-            gui.propTable = uitable('Parent',gui.root, 'Position', ...
-                [gui.convTable.Position(1)+ gui.convTable.Position(3)+25,...
-                gui.convTable.Position(2), 350, 75],'ColumnEditable', true...
-                ,'CellEditCallback',@editProp, 'ColumnFormat',...
-                {'char',gui.siPrefixes,'char','numeric','numeric','logical'},...
-                'RowName',[],'ColumnName', ...
-                {'Label','Prefix','Unit','Max','Min','Important'},...
-                'ColumnWidth',{75,50,50,50,50,50}...
-                );
-            formulaField = uicontrol('Style','edit',...
-                'Position', [gui.propTable.Position(1:3) 30]...
-                ,'Callback',@editFormula...
-                );
-            
-            % table for controlling the update speed of certain components
-            updateChangeTable = uitable('Parent',gui.root, 'Position',...
-                [gui.propTable.Position(1), sum(gui.propTable.Position([2 4])),...
-                350 , 50], 'ColumnEditable', true, 'RowName',[],'ColumnName',...
-                {'Base','Graphs','All','Import'},'ColumnFormat',{'numeric'},'ColumnWidth',{75 75,75,75}...
-                ,'CellEditCallback',@changeUpdateFreq...
-                );
-            updateChangeTable.Data = {gui.updateRate, gui.graphRate, gui.allRate, gui.impRate};
-            
+            generateImpTable();
+            generateImpCheck();
+            generateAllTable();
+            generatePropTable();
+            generateUCTabke()
+            % Function: generateImpTable
+            % Functionality: generates table and properties for the table 
+            % which shows the metadata of the important sensors
+            function generateImpTable()
+                gui.impSensorsLabel = uitable('Parent', gui.root,...
+                    'Position', [25 divParams(4)+75 divParams(3)+25 divParams(4)-75],...
+                    'Data',gui.data(gui.importantSensors,1:2),...
+                    'BackgroundColor', [0.9 0.9 1 ;0.5 0.5 1],'FontSize', gui.config.font,...
+                    'ColumnWidth',gui.config.impTabWidth ,...
+                    'RowName',[],'ColumnName',{'Label', 'Type'}...
+                    );
+                % generates table and properties for the table which shows the
+                % sensor data, is a seperate table because of rendering issues
+                gui.impSensorsLabel.Position(3) = gui.impSensorsLabel.Extent(3);
+
+
+                gui.impSensorsData = gui.concatUItab(gui.impSensorsLabel,...
+                    gui.data(gui.importantSensors,3));
+                gui.impSensorsData.ColumnFormat = {'shortG'};
+                gui.impSensorsData.ColumnWidth = {150};
+                gui.impSensorsData.ColumnName = {'Value'};
+                gui.impSensorsData.Position(3) = gui.impSensorsData.Extent(3);
+
+                % table which is used to toggle the SI-prefixes of the sensors
+                SiTable = cell(size(gui.importantSensors,2),1);
+                SiTable(:)  = {'none'};
+                gui.convTable = gui.concatUItab(gui.impSensorsData, SiTable);
+                gui.convTable.Visible = 'on';
+                gui.convTable.ColumnFormat = {gui.siPrefixes};
+                gui.convTable.ColumnEditable = true;
+                gui.convTable.CellEditCallback = @cellEditCallback;
+                gui.convTable.ColumnName = {'SI'};
+            end    
+            % Function: generateImpCheck
+            % Functionality: constructs boolean representation of the important sensors
+            function generateImpCheck()
+                gui.impSensCheck = false(size(gui.data,1),1);
+                gui.impSensCheck(gui.importantSensors) = true;
+                gui.impSensCheck = num2cell(gui.impSensCheck);
+            end
+            % Function: generateAllTable
+            % Functionality: table which shows all sensors, starts hidden
+            function generateAllTable()
+                gui.allSensors = uitable('Parent', gui.root, 'Position', ...
+                    [divParams(3)+25 0 divParams(5) divParams(6) ],...
+                    'Data',gui.data(:,[1 3]),'RowName',[],...
+                    'ColumnName',[],'BackgroundColor', [0.9 0.9 1 ],...
+                    'ColumnWidth', {100,75}, 'Visible','off',...
+                    'CellSelectionCallback',@showProperties...
+                    ,'ColumnFormat', {'char','numeric','logical'},...
+                    'ColumnEditable',[false false true] ...
+                    );
+                gui.allSensors.Position(3) = gui.allSensors.Extent(3)+20;
+
+                %toggle for showing the all sensors table
+                showAll = uicontrol('Style','checkbox','Callback',@toggleAll,...
+                    'Position',[divParams(3)-350 625 150 25],...
+                    'String','Show all sensors table'...
+                    );
+            end           
+            % Function: generatePropTable
+            % Functionality: table which shows the properties of the currently selected
+            % sensor
+            function generatePropTable()
+                gui.propTable = uitable('Parent',gui.root, 'Position', ...
+                    [gui.convTable.Position(1)+ gui.convTable.Position(3)+25,...
+                    gui.convTable.Position(2), 350, 75],'ColumnEditable', true...
+                    ,'CellEditCallback',@editProp, 'ColumnFormat',...
+                    {'char',gui.siPrefixes,'char','numeric','numeric','logical'},...
+                    'RowName',[],'ColumnName', ...
+                    {'Label','Prefix','Unit','Max','Min','Important'},...
+                    'ColumnWidth',{75,50,50,50,50,50}...
+                    );
+                formulaField = uicontrol('Style','edit',...
+                    'Position', [gui.propTable.Position(1:3) 30]...
+                    ,'Callback',@editFormula...
+                    );
+            end
+            % Function: generateUCTabke
+            % Functionality: table for controlling the update speed of certain components
+            function generateUCTabke()
+                updateChangeTable = uitable('Parent',gui.root, 'Position',...
+                    [gui.propTable.Position(1), sum(gui.propTable.Position([2 4])),...
+                    350 , 50], 'ColumnEditable', true, 'RowName',[],'ColumnName',...
+                    {'Base','Graphs','All','Import'},'ColumnFormat',{'numeric'},'ColumnWidth',{75 75,75,75}...
+                    ,'CellEditCallback',@changeUpdateFreq...
+                    );
+                updateChangeTable.Data = {gui.updateRate, gui.graphRate, gui.allRate, gui.impRate};
+            end
             % Function: showProperties
             % Functionality: callback function which show the properties
             % of a sensor when selected
-            function showProperties(table, event)
-                
+            function showProperties(~, event)
                 if (size(event.Indices,1) > 0)
                     % gets the index en properties of the sensor
                     sensIdx = event.Indices(1);
@@ -403,12 +391,11 @@ classdef SimpleGui <handle
                     formulaField.String = func2str(sensProps.transformation);
                     gui.selectedSensor = sensIdx;
                 end
-            end
-            
+            end            
             % Function: editProp
             % Functionality :callback function which saves the edited
             % properties to the global list when a property is edited
-            function editProp(table, event)
+            function editProp(~, event)
                 % gets the index of the property
                 % 1: Label
                 % 2: SI Prefix
@@ -433,26 +420,23 @@ classdef SimpleGui <handle
                 % saves the changes
                 gui.sensorProperties(gui.selectedSensor) = {sensProps};
                 gui.saveProperties();
-            end
-            
+            end          
             % Function: cellEditCallback
             % Functionality: callback function for selecting another
             % SI-prefix to correctlyn transform the data
-            function cellEditCallback(hTable, editEvent)
+            function cellEditCallback(~, editEvent)
                 gui.transformSiData(editEvent.Indices(1),editEvent.NewData);
             end
-            
             % Function: toggleAll
             % Functionality: function for toggeling the visibility
             % of the All Sensors table
-            function toggleAll(hObject,eventData)
+            function toggleAll(hObject,~)
                 if(get(hObject,'Value') == get(hObject,'Max'))
                     gui.allSensors.Visible = 'on';
                 else
                     gui.allSensors.Visible = 'off';
                 end
             end
-            
             % Function: updateImpSens
             % Functionality:
             % updates the important sensor window with the currently
@@ -475,11 +459,10 @@ classdef SimpleGui <handle
                 gui.impSensorsData.Data = gui.data(gui.importantSensors,3);
                 gui.syncProperties();
             end
-            
             % Function: editFormula
             % Functionality: callback for when the transformation field is
             % changed; applies the new formula to the relevant data
-            function editFormula(control, event)
+            function editFormula(control, ~)
                 sensProps = gui.sensorProperties(gui.selectedSensor);
                 sensProps = sensProps{1};
                 sensProps.transformation = str2func(control.String);
@@ -498,13 +481,10 @@ classdef SimpleGui <handle
                 gui.saveProperties();
                 gui.syncProperties();
             end
-            
             % Function: changeUpdateFreq
             % Functionality: changes update frequency of the visual
             % elements
-            function changeUpdateFreq(control, event)
-                control;
-                event;
+            function changeUpdateFreq(~, event)
                 switch event.Indices(2)
                     case 1
                         gui.updateRate = event.NewData;
@@ -516,71 +496,71 @@ classdef SimpleGui <handle
                         gui.impRate = event.NewData;
                 end
             end
-            
         end
-        
+        % Function: setProperties
+        % Functinality: sets the gui properties
+        function setProperties(gui ,sensorData ,config)
+                gui.data=sensorData;
+                if(strcmp(config.env,'local'))
+                    gui.data = sensorData.datamatrix;
+                end
+                gui.sensorLabel = gui.data(:,1);
+                gui.sensorTabel = gui.data(:,2);
+                gui.sensorMin = cell2mat(gui.data(:,3));
+                gui.sensorMax = cell2mat(gui.data(:,4));
+                gui.importantSensors = config.impSens;
+                gui.sensorProperties = cell(size(gui.data,1),1);
+                gui.updateRate = config.updateFreq;
+                gui.graphRate = config.graphUpdateRate;
+                gui.impRate = config.impUpdateRate;
+                gui.allRate = config.allUpdateRate;
+            end
         % Function: generateGraphs
         % Functionality: creates the graphs
         function generateGraphs(gui, naxes,divParams)
-            
             if(naxes >2)
                 divParams(3) = divParams(3)+25;
                 divParams(4)= divParams(4)-25;
             end
-            gui.graph = axes('Units','pixels', 'Position', ...
-                [25,25,(divParams(3)/naxes)-25,divParams(4)-25]);
-            gui.graph.Units = 'normalized';
-            gui.graph.Title.String = 'Graph 1';
-            gui.graph2 = axes('Units','pixels', 'Position', ...
-                [25+(divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
-            gui.graph2.Units = 'normalized';
-            gui.graph2.Title.String = 'Graph 2';
+            gui.graph = genGraph(1);
+            gui.graph2 = genGraph(2);
+            gui.ddg1 = genDDG(1);
+            gui.ddg2 = genDDG(2);  
             
-            
-            if(naxes >2)
-                gui.graph3 = axes('Units','pixels', 'Position', ...
-                    [25+(2*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25]);
-                gui.graph3.Units = 'normalized';
-                gui.graph3.Title.String = 'Graph 3';
-                gui.graph4 = axes('Units','pixels', 'Position', ...
-                    [25+(3*divParams(3)/naxes),25,(divParams(3)/naxes)-25,divParams(4)-25] );
-                gui.graph4.Units = 'normalized';
-                gui.graph4.Title.String = 'Graph 4';
-                
-                gui.ddg3 = uicontrol('Style', 'listbox',...
-                    'String', gui.sensorLabel,...
-                    'Position', [25+(2*divParams(3)/naxes) divParams(4) 125 75],...
-                    'Max',7 ,'Tag','3' ,'Callback',@redrawLegend...
-                    );
-                gui.ddg4 = uicontrol('Style', 'listbox',...
-                    'String', gui.sensorLabel,'Value',2,...
-                    'Position', [25+(3*divParams(3)/naxes) divParams(4) 125 75]...
-                    ,'Max', 7 ,'Tag','4' ,'Callback',@redrawLegend...
-                    );
+            if(naxes  > 2 )
+                gui.graph3 = genGraph(3);
+                gui.graph4 = genGraph(4);
+                gui.ddg3 = genDDG(3);
+                gui.ddg4 = genDDG(4);
             end
-            
-
-            
-            gui.ddg1 = uicontrol('Style', 'listbox',...
-                'String', gui.sensorLabel,...
-                'Position', [25 divParams(4) 125 75],...
-                'Max',7,'Tag','1' ,'Callback',@redrawLegend ...
-                );
-            gui.ddg2 = uicontrol('Style', 'listbox',...
-                'String', gui.sensorLabel,'Value',2,...
-                'Position', [25+(divParams(3)/naxes) divParams(4) 125 75]...
-                ,'Max', 7,'Tag','2','Callback',@redrawLegend ...
-                );
-            
             gui.showLegend = uicontrol('Style','checkbox','Callback',@toggleLegend,...
                 'Position',[(gui.root.Position(3)*0.8)-350 675 150 25],...
                 'String','Show Legend'...
-            );
+                );
             
+            % Function: genGraph
+            % Functionality: generates a graph with location and title
+            % based on input num
+            function obj = genGraph(num)
+                obj =  axes('Units','pixels', 'Position', ...
+                    [25+((num-1)*(divParams(3)/naxes)),25,(divParams(3)/naxes)-25,divParams(4)-25]);
+                obj.Units = 'normalized';
+                obj.Title.String = strcat('Graph ',num2str(num));
+            end
+            
+            % Function: genDDG
+            % Functionality: generates a listbox with all sensors to select
+            % which sensors are shown in graph with corresponding num
+            function obj = genDDG(num)
+                obj = uicontrol('Style', 'listbox',...
+                    'String', gui.sensorLabel,...
+                    'Position', [25+((num-1)*(divParams(3)/naxes)) divParams(4) 125 75],...
+                    'Max',7 ,'Tag',num2str(num) ,'Callback',@redrawLegend...
+                    );
+            end
             % Function: redrawLegend
-            % Function: add legend to graphs
-            % Incomple
-            function redrawLegend(obj,event)
+            % Functionty: add legend to graphs
+            function redrawLegend(obj,~)
                 if(gui.showLegend.Value)
                     switch obj.Tag
                         case '1'
@@ -593,15 +573,16 @@ classdef SimpleGui <handle
                             ax = gui.graph4;
                         otherwise
                     end
-                        
+                    
                     shortLabels = SimpleGui.shortenStringArr(gui.sensorLabel(obj.Value),gui.config.legendLength);
                     gui.plotLine(transpose(gui.dataSlidingWindow(obj.Value,:)),ax,str2num(obj.Tag));
                     l =  legend(ax,shortLabels);
-                    l.Position([1 3]) = [ax.Position(1)+0.05 0.10]; 
+                    l.Position([1 3]) = [ax.Position(1)+0.05 0.10];
                 end
             end
-            
-            function toggleLegend(obj, event)
+            % Function: toggleLegend
+            % Functionality: switches between showing and hiding the legend
+            function toggleLegend(obj, ~)
                 if (obj.Value)
                     redrawLegend(gui.ddg1);
                     redrawLegend(gui.ddg2);
@@ -620,7 +601,7 @@ classdef SimpleGui <handle
             end
         end
         
-
+        
         
         % Function: convertData
         % Functionality: transforms the data according to the SI unit and
@@ -635,7 +616,7 @@ classdef SimpleGui <handle
                     sensidxs = gui.importantSensors;
                 otherwise
                     sensidxs = 1:size(data,1);
-                    [transSensIdxs, transTabIdxs, x] = intersect(sensidxs, gui.transIdx);
+                    [transSensIdxs, transTabIdxs, ~] = intersect(sensidxs, gui.transIdx);
                     sensidxs = transSensIdxs;
                     tabidxs = transpose(transTabIdxs);
             end
@@ -683,12 +664,11 @@ classdef SimpleGui <handle
                 data = data.datamatrix;
             end
             outlierIdx = gui.checkValues(data(:,3));
-            
             % if a value is not in the defined range, mark the outlier
-            %             if(size(gui.sensorOutlier,1) > 0)
-            %                 gui.allSensors.Data = ...
-            %                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
-            %             end
+            if(size(gui.sensorOutlier,1) > 0)
+                gui.allSensors.Data = ...
+                    gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
+            end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
                 gui.impSensorsData.Data = ...
@@ -698,11 +678,15 @@ classdef SimpleGui <handle
             if(updateAll)
                 gui.allSensors.Data = gui.convertData(data(:,[1 3]),'all');
             end
-            
             % updates the graphs
             gui.updateDatabacklog(data);
-            
             if(updateGraph)
+                updateGraphs();
+            end
+            drawnow limitrate;
+            
+            % Function: updateGraphs
+            function updateGraphs()
                 gui.updateSlidingWindow();
                 gui.graphSensors{1}=gui.ddg1.Value;
                 gui.graphSensors{2}=gui.ddg2.Value;
@@ -718,8 +702,6 @@ classdef SimpleGui <handle
                     gui.plotLine(transpose(gui.dataSlidingWindow(gui.graphSensors{4},:)),gui.graph4,4);
                 end
             end
-            
-            drawnow limitrate;
         end
         
         % Function: saveProperties
@@ -771,7 +753,7 @@ classdef SimpleGui <handle
         % Function: syncProperties
         % Functionality: synchronises the SI-prefix with the tables
         function syncProperties(gui)
-            idxs =  [1:size(gui.importantSensors,2)];
+            idxs =  1:size(gui.importantSensors,2);
             tmpCondata = gui.convTable.Data;
             if(~isempty(gui.importantSensors))
                 arrayfun(@syncSensor, gui.importantSensors,idxs);
@@ -783,10 +765,10 @@ classdef SimpleGui <handle
             % Functionality: checks if the SI-prefix of the sensor changed
             function syncSensor(sensid, tabid)
                 sensorC = gui.sensorProperties{sensid};
-                if ( ~(isempty(sensorC)) & (isempty(sensorC.siOrgPrefix)) )
+                if ( ~(isempty(sensorC)) && (isempty(sensorC.siOrgPrefix)) )
                     sensorC.siOrgPrefix = 'none';
                 end
-                if( (isempty(sensorC) == 0) &...
+                if( (isempty(sensorC) == 0) &&...
                         ~strcmp(tmpCondata{tabid}, sensorC.siOrgPrefix) )
                     tmpCondata{tabid} = sensorC.siOrgPrefix;
                 end
@@ -818,11 +800,8 @@ classdef SimpleGui <handle
         % Functionality: saves the data in a ring buffer in order to
         % plot in on the graph
         function updateDatabacklog(gui, data)
-            %           newdata = cell2mat(gui.convertData(data(:,3),'log'));
             newdata = cell2mat(data(:,3));
-            
             gui.databacklog(:,gui.backlogPointer) = newdata;
-            
             gui.backlogPointer = mod(gui.backlogPointer,gui.backlogSize) + 1;
         end
         
@@ -831,7 +810,6 @@ classdef SimpleGui <handle
         function updateSlidingWindow(gui)
             tail = gui.databacklog(:,gui.backlogPointer+1 : end);
             head = gui.databacklog(:,1 : gui.backlogPointer);
-            
             gui.dataSlidingWindow = [tail head];
         end
         
@@ -893,7 +871,7 @@ classdef SimpleGui <handle
         % Functionality: determines the best SI-prefix for all important sensors
         function scaleSI(gui)
             sensorIds = gui.importantSensors;
-            tableIds = [1:size(sensorIds,2)];
+            tableIds = 1:size(sensorIds,2);
             if(~isempty(sensorIds))
                 arrayfun(@scaleEntry, tableIds,sensorIds);
             end
@@ -909,31 +887,22 @@ classdef SimpleGui <handle
                 switch exp
                     case num2cell(0:2)
                         siPrefix='none';
-                        exp = 0;
                     case num2cell(3:5)
                         siPrefix='k';
-                        exp = 3;
                     case num2cell(6:8)
                         siPrefix='M';
-                        exp = 6;
                     case num2cell(9:11)
                         siPrefix='G';
-                        exp = 9;
                     case num2cell(-3:-1)
                         siPrefix='m';
-                        exp = -3;
                     case num2cell(-6:-4)
                         siPrefix='µ';
-                        exp = -6;
                     case num2cell(-7:-10)
                         siPrefix='n';
-                        exp = -9;
                     otherwise
                         siPrefix='none';
-                        exp = 0;
                 end
-                gui.convTable.Data{tableIdx} = siPrefix;
-                
+                gui.convTable.Data{tableIdx} = siPrefix;                
                 gui.transformSiData(tableIdx,siPrefix);
             end
         end

@@ -131,7 +131,8 @@ int main(int argc, char *argv[]){
 		}
 		inflateEnd(&strm);
 		if(reference_chk != chk){
-			printf("New reference packet (should be rare): %i != %i\n", reference_chk, chk);
+			if(verbose)
+				printf("New reference packet (should be rare): %i != %i\n", reference_chk, chk);
 			memcpy(reference, decompressed, chk);
 			reference_chk = chk;
 		}else{
