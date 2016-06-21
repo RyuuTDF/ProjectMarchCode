@@ -177,7 +177,7 @@ classdef NetworkEnv < Env
             t = datetime('now');
             p = uint32(posixtime(t));
             p = typecast(p, 'uint16');
-            sendData = [uint16(2); p];
+            sendData = [uint16(2) p];
             
             step(obj.sender, sendData);
             
