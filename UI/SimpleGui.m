@@ -257,6 +257,17 @@ classdef SimpleGui <handle
                 gui.generateGraphs(naxes,divParams);
                 gui.generateTables(divParams);
                 gui.loadProperties();
+                if(strcmp(gui.config.size,'l'))
+                    makeLogo();
+                end
+            end
+            
+            function makeLogo()
+                imgax = axes('Units','pixels','Position',[...
+                    gui.convTable.Position(1)+ gui.convTable.Position(3)+55, ...
+                    gui.convTable.Position(2)-36 ,300 500]...
+                    ,'Parent',gui.root)
+                imshow(imread('A4 Logo.png'));
             end
             
             % Function: figDeleteCallback
@@ -275,7 +286,7 @@ classdef SimpleGui <handle
             generateImpCheck();
             generateAllTable();
             generatePropTable();
-            generateUCTabke()
+            generateUCTable()
             % Function: generateImpTable
             % Functionality: generates table and properties for the table 
             % which shows the metadata of the important sensors
@@ -349,6 +360,9 @@ classdef SimpleGui <handle
                     {'Label','Prefix','Unit','Max','Min','Important'},...
                     'ColumnWidth',{75,50,50,50,50,50}...
                     );
+                if(strcmp(gui.config.size,'l'))
+                   gui.propTable.Position(1:2) = [(gui.root.Position(3)*0.8)-350 750] ;
+                end
                 formulaField = uicontrol('Style','edit',...
                     'Position', [gui.propTable.Position(1:3) 30]...
                     ,'Callback',@editFormula...
@@ -356,7 +370,7 @@ classdef SimpleGui <handle
             end
             % Function: generateUCTabke
             % Functionality: table for controlling the update speed of certain components
-            function generateUCTabke()
+            function generateUCTable()
                 updateChangeTable = uitable('Parent',gui.root, 'Position',...
                     [gui.propTable.Position(1), sum(gui.propTable.Position([2 4])),...
                     350 , 50], 'ColumnEditable', true, 'RowName',[],'ColumnName',...
@@ -665,10 +679,10 @@ classdef SimpleGui <handle
             end
             outlierIdx = gui.checkValues(data(:,3));
             % if a value is not in the defined range, mark the outlier
-            if(size(gui.sensorOutlier,1) > 0)
-                gui.allSensors.Data = ...
-                    gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
-            end
+%             if(size(gui.sensorOutlier,1) > 0)
+%                 gui.allSensors.Data = ...
+%                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
+%             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
                 gui.impSensorsData.Data = ...
@@ -714,6 +728,7 @@ classdef SimpleGui <handle
         % Function: loadProperties
         % Functionality: loads the sensor properties from file
         function loadProperties(gui)
+            gui.resetProperties();
             load('Properties.mat');
             if(isempty(sensProps))
                 sensProps = cell(size(gui.data,1),1);
