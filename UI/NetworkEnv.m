@@ -117,7 +117,7 @@ classdef NetworkEnv < Env
                        datamatrix = [SignalProperties((2:end),2:end) orderedValues];
                        datamatrix(:,[1 2 3 4 5]) = datamatrix(:,[1 2 5 3 4]);
                        
-                       datamatrix(:,1) = [datamatrix{:,1}];
+                       %datamatrix(:,1) = [datamatrix{:,1}];
                        obj.currentData = datamatrix;
                     else
                         obj.currentData(:,3) = orderedValues;
