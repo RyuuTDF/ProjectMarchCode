@@ -427,6 +427,12 @@ classdef SimpleGui <handle
                         gui.syncProperties();
                     case 3
                         sensProps.siUnit = event.NewData;
+                    case 4
+                        gui.sensorMin(gui.selectedSensor) = event.NewData;
+                        sensProps.minVal = event.NewData;
+                    case 5
+                        gui.sensorMax(gui.selectedSensor) = event.NewData;
+                        sensProps.maxVal = event.NewData;
                     case 6
                         updateImpSens(gui.selectedSensor, event.NewData);
                     otherwise
@@ -679,10 +685,10 @@ classdef SimpleGui <handle
             end
             outlierIdx = gui.checkValues(data(:,3));
             % if a value is not in the defined range, mark the outlier
-%             if(size(gui.sensorOutlier,1) > 0)
-%                 gui.allSensors.Data = ...
-%                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
-%             end
+             if(size(gui.sensorOutlier,1) > 0)
+                 gui.allSensors.Data = ...
+                     gui.markoutliers(gui.sensorOutlier,gui.convertData(data(:,[1 3]),'all'));
+             end
             % updates the imporant sensor if the flag is set to true
             if(updateImp)
                 gui.impSensorsData.Data = ...
