@@ -357,7 +357,7 @@ classdef SimpleGui <handle
                     ,'CellEditCallback',@editProp, 'ColumnFormat',...
                     {'char',gui.siPrefixes,'char','numeric','numeric','logical'},...
                     'RowName',[],'ColumnName', ...
-                    {'Label','Prefix','Unit','Max','Min','Important'},...
+                    {'Label','Prefix','Unit','Min','Max','Important'},...
                     'ColumnWidth',{75,50,50,50,50,50}...
                     );
                 if(strcmp(gui.config.size,'l'))
@@ -368,7 +368,7 @@ classdef SimpleGui <handle
                     ,'Callback',@editFormula...
                     );
             end
-            % Function: generateUCTabke
+            % Function: generateUCTable
             % Functionality: table for controlling the update speed of certain components
             function generateUCTable()
                 updateChangeTable = uitable('Parent',gui.root, 'Position',...
@@ -526,8 +526,8 @@ classdef SimpleGui <handle
                 end
                 gui.sensorLabel = gui.data(:,1);
                 gui.sensorTabel = gui.data(:,2);
-                gui.sensorMin = cell2mat(gui.data(:,3));
-                gui.sensorMax = cell2mat(gui.data(:,4));
+                gui.sensorMin = cell2mat(gui.data(:,4));
+                gui.sensorMax = cell2mat(gui.data(:,5));
                 gui.importantSensors = config.impSens;
                 gui.sensorProperties = cell(size(gui.data,1),1);
                 gui.updateRate = config.updateFreq;
@@ -801,8 +801,8 @@ classdef SimpleGui <handle
         % the given minimum and maximum
         function exIdx = checkValues(gui,data)
             datarr = cell2mat(data);
-            mincm = gui.sensorMin < datarr;
-            maxcm = gui.sensorMax > datarr;
+            mincm = gui.sensorMin > datarr;
+            maxcm = gui.sensorMax < datarr;
             exIdx = find(mincm | maxcm);
             gui.sensorOutlier = union(gui.sensorOutlier,exIdx);
         end
